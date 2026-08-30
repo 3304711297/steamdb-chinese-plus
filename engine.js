@@ -108,7 +108,7 @@ function translateAttributes(root) {
         // 自己写回的值不再重复写:没有这一步,任何同引擎/其他翻译扩展的回写
         // 都会经 attributes observer 再次进入这里,极端情况下互相触发成风暴
         if (next === raw) continue;
-        lastAttrWrite.set(el, 'placeholder\0' + next);
+        markAttrWrite(el, 'placeholder', next);
         el.setAttribute('placeholder', next);
     }
     const labelled = root.matches && root.matches('[aria-label]')
@@ -121,7 +121,7 @@ function translateAttributes(root) {
         if (zh === null) { logUnmatched(raw, 'aria-label'); continue; }
         const next = raw.replace(raw.trim(), zh);
         if (next === raw) continue;
-        lastAttrWrite.set(el, 'aria-label\0' + next);
+        markAttrWrite(el, 'aria-label', next);
         el.setAttribute('aria-label', next);
     }
 }
@@ -135,9 +135,22 @@ function processRoot(root) {
 /* ---- 空闲批处理调度 ---- */
 const translatedNodes = new WeakSet();
 // 引擎自己写过的最终值(文本/属性),用于识别"自己触发的变更",
-// 避免自身写入 → observer → 重扫 的自反馈洪水(性能事故根因之一)
+// 避免自身写入 → observer → 重扫 的自反馈洪水(性能事故根因之一)。
+// 属性按 元素→属性名→值 三级记录:同一元素写多个属性不能互相覆盖
 const lastTextWrite = new WeakMap();
 const lastAttrWrite = new WeakMap();
+
+function markAttrWrite(el, attr, value) {
+    let m = lastAttrWrite.get(el);
+    if (!m) { m = new Map(); lastAttrWrite.set(el, m); }
+    m.set(attr, value);
+}
+
+function isOwnAttrWrite(el, attr, value) {
+    const m = lastAttrWrite.get(el);
+    return !!m && m.get(attr) === value;
+}
+
 const pendingRoots = [];
 const pendingRootSet = new Set();
 let scheduled = false;
@@ -146,6 +159,8 @@ let scheduled = false;
 const FLUSH_BUDGET = 300;
 
 function pushRoot(root) {
+    // 全页根在队时任何细粒度根都已被覆盖,直接跳过(否则洪水合并后又漏进来逐根扫)
+    if (pendingRootSet.has(document.body)) return;
     if (pendingRootSet.has(root)) return;
     // 洪水合并:队列过长时直接退化为全页一根,本轮扫描总量有上界
     if (pendingRoots.length >= FLUSH_BUDGET) {
@@ -153,6 +168,14 @@ function pushRoot(root) {
         pendingRoots.length = 0;
         pendingRoots.push(document.body);
         pendingRootSet.add(document.body);
+        return;
+    }
+    if (root === document.body) {
+        // 全页根覆盖一切细粒度根
+        for (const r of pendingRoots) pendingRootSet.delete(r);
+        pendingRoots.length = 0;
+        pendingRoots.push(root);
+        pendingRootSet.add(root);
         return;
     }
     pendingRoots.push(root);
@@ -222,7 +245,7 @@ const observer = new MutationObserver((mutations) => {
         }
         // 动态改 placeholder/aria-label:轻量直译该元素属性,不整树重扫
         if (m.type === 'attributes' && m.target && m.target.nodeType === Node.ELEMENT_NODE) {
-            if (m.attributeName && lastAttrWrite.get(m.target) === m.attributeName + '\0' + m.target.getAttribute(m.attributeName)) {
+            if (m.attributeName && isOwnAttrWrite(m.target, m.attributeName, m.target.getAttribute(m.attributeName))) {
                 continue; // 引擎自己的回写,跳过
             }
             try { translateAttributes(m.target); } catch (e) { console.warn('[SteamDB中文] 属性翻译失败:', e); }
