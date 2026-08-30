@@ -168,6 +168,11 @@ const observer = new MutationObserver((mutations) => {
             translatedNodes.delete(m.target);
             pendingRoots.push(m.target.parentElement);
         }
+        // 动态改 placeholder/aria-label:轻量直译该元素属性,不整树重扫。
+        // 自己写回的中文值无字母,重查必然空跑,不会死循环
+        if (m.type === 'attributes' && m.target && m.target.nodeType === Node.ELEMENT_NODE) {
+            try { translateAttributes(m.target); } catch (e) { console.warn('[SteamDB中文] 属性翻译失败:', e); }
+        }
     }
     schedule();
 });
@@ -175,7 +180,13 @@ const observer = new MutationObserver((mutations) => {
 function start() {
     if (!document.body) return;
     document.documentElement.setAttribute('lang', 'zh-CN');
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['placeholder', 'aria-label'],
+    });
     registerMenu();
     processAll();
 }

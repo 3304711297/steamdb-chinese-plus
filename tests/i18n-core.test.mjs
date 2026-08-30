@@ -98,6 +98,14 @@ describe('mergeLocales(补充词库合并——补充词覆盖上游,上游快�
         assert.strictEqual(m.STATIC.td['Last Update'], '上次更新');
         assert.strictEqual(m.DOC['补充词库'], undefined);
     });
+
+    test('REGEX-only 补充词库:REGEX 追加、其余段保持 base(build 判断曾漏掉此形态)', () => {
+        const regexOnly = { REGEX: [['^a (\\d+)$', 'a $1']] };
+        const m = mergeLocales(base, regexOnly);
+        assert.strictEqual(m.REGEX.length, 1);
+        assert.strictEqual(m.STATIC['h1,a'].Home, '首页');
+        assert.strictEqual(m.DOC['补充词库'], undefined); // 无 DOC 不记来源
+    });
 });
 
 describe('compileRules / lookupRegex(动态文案正则——分页信息/计数)', () => {

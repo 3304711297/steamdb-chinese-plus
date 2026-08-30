@@ -24,7 +24,7 @@ const read = (name) => readFileSync(join(root, name), 'utf8');
 /* ====== 发布配置 ====== */
 const REPO_OWNER = '3304711297';
 const REPO_NAME = 'steamdb-chinese-plus';
-const OUR_BASE = '1.1'; // 我们自己的功能版本号,有功能性改动时手动递增
+const OUR_BASE = '1.2'; // 我们自己的功能版本号,有功能性改动(含引擎修复/兼容性调整)时手动递增
 
 const state = JSON.parse(readFileSync(join(root, 'upstream.state.json'), 'utf8'));
 const BUILD_NUMBER = state.buildNumber || 1;
@@ -87,10 +87,12 @@ const baseError = validateLocales(base);
 if (baseError) throw new Error(`上游词库文件不合法: ${baseError}`);
 
 // 合并自有补充词库:与上游快照分离,check-upstream 只覆盖 steamdb-dict.json,不会被同步冲掉。
-// 允许空补充词库(尚无实测漏翻词条时)
+// 允许空补充词库(尚无实测漏翻词条时)。REGEX 段也算有效内容,
+// 否则"只有正则规则"的补充词库会被误判为空而整体丢失
 const supplement = JSON.parse(read('sources/steamdb-supplement.json'));
 const supplementHasEntries = ['STATIC', 'DYNAMIC', 'INPUT', 'LABEL']
-    .some((k) => supplement[k] && Object.keys(supplement[k]).length > 0);
+    .some((k) => supplement[k] && Object.keys(supplement[k]).length > 0)
+    || (Array.isArray(supplement.REGEX) && supplement.REGEX.length > 0);
 let dict;
 if (supplementHasEntries) {
     const supplementError = validateLocales(supplement);
