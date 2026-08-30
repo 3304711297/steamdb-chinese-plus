@@ -19,6 +19,7 @@ const STATIC_SCOPES = Object.entries(__LOCALES.STATIC || {});
 const DYNAMIC_SCOPES = Object.entries(__LOCALES.DYNAMIC || {});
 const INPUT_DICT = __LOCALES.INPUT || {};
 const LABEL_DICT = __LOCALES.LABEL || {};
+const REGEX_RULES = compileRules(__LOCALES.REGEX || []);
 
 /* ---- 未命中词输出开关(脚本菜单切换,便于给补充词库攒词条) ---- */
 function loadOutputToggle() {
@@ -61,7 +62,7 @@ function applyTranslation(textNode, dict) {
     const trimmed = text.trim();
     if (!trimmed || trimmed.length > MAX_TEXT_LENGTH || !HAS_LETTER.test(trimmed)) return;
     const key = trimmed.replace(/\s+/g, ' ');
-    const zh = dict[key];
+    const zh = dict[key] ?? (REGEX_RULES.length ? lookupRegex(REGEX_RULES, key) : null);
     if (!zh) { logUnmatched(key, 'text'); return; }
     // 只替换首个命中段,保留原文的前导/尾随空白
     textNode.nodeValue = text.replace(trimmed, zh);

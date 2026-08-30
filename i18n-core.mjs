@@ -59,6 +59,9 @@ export function validateLocales(locales) {
         const dic = locales[section];
         if (isDict(dic)) entries += Object.keys(dic).length;
     }
+    if (locales.REGEX !== undefined && !Array.isArray(locales.REGEX)) {
+        return 'REGEX 不是数组';
+    }
     if (entries === 0) return '有效词条为 0';
     return null;
 }
@@ -77,6 +80,7 @@ export function mergeLocales(base, supplement) {
         INPUT: { ...(isDict(base.INPUT) ? base.INPUT : {}) },
         LABEL: { ...(isDict(base.LABEL) ? base.LABEL : {}) },
         DYNAMIC: {},
+        REGEX: [...(Array.isArray(base.REGEX) ? base.REGEX : [])],
     };
     const mergeScoped = (dst, src) => {
         if (!isDict(src)) return;
@@ -93,9 +97,49 @@ export function mergeLocales(base, supplement) {
         for (const section of ['INPUT', 'LABEL']) {
             if (isDict(supplement[section])) Object.assign(merged[section], supplement[section]);
         }
+        if (Array.isArray(supplement.REGEX)) merged.REGEX.push(...supplement.REGEX);
         if (isDict(supplement.DOC)) merged.DOC['补充词库'] = supplement.DOC;
     }
     return merged;
+}
+
+/**
+ * 编译正则规则(词库 REGEX 段,格式 [pattern, replacement]):
+ * 单条非法只丢弃该条,绝不整体失败。
+ * @returns {Array<{re: RegExp, to: string}>}
+ */
+export function compileRules(rules) {
+    const compiled = [];
+    if (!Array.isArray(rules)) return compiled;
+    for (const rule of rules) {
+        if (!Array.isArray(rule) || rule.length < 2) continue;
+        const [pattern, to] = rule;
+        if (typeof pattern !== 'string' || typeof to !== 'string') continue;
+        try {
+            compiled.push({ re: new RegExp(pattern), to });
+        } catch {
+            /* 非法正则:丢弃该条 */
+        }
+    }
+    return compiled;
+}
+
+/**
+ * 正则兜底查找(静态词未命中后)。
+ * 只有当替换结果与原文不同才返回,否则返回 null(避免无意义 DOM 写入)。
+ */
+export function lookupRegex(compiled, text) {
+    if (typeof text !== 'string') return null;
+    const trimmed = text.trim();
+    if (!trimmed || !HAS_LETTER.test(trimmed)) return null;
+    if (trimmed.length > MAX_TEXT_LENGTH) return null;
+    for (const { re, to } of compiled) {
+        if (re.test(trimmed)) {
+            const replaced = trimmed.replace(re, to);
+            if (replaced !== trimmed) return replaced;
+        }
+    }
+    return null;
 }
 
 /**

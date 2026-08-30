@@ -14,6 +14,8 @@ import {
     validateLocales,
     mergeLocales,
     lookupSimple,
+    compileRules,
+    lookupRegex,
 } from '../i18n-core.mjs';
 
 describe('normalizeKey', () => {
@@ -95,6 +97,40 @@ describe('mergeLocales(补充词库合并——补充词覆盖上游,上游快�
         const m = mergeLocales(base, null);
         assert.strictEqual(m.STATIC.td['Last Update'], '上次更新');
         assert.strictEqual(m.DOC['补充词库'], undefined);
+    });
+});
+
+describe('compileRules / lookupRegex(动态文案正则——分页信息/计数)', () => {
+    const rules = compileRules([
+        ['^Showing (\\d+) to (\\d+) of ([\\d,]+) entries$', '显示第 $1 至 $2 项,共 $3 项'],
+        ['^([\\d,]+) products match your filters$', '$1 个商品符合筛选条件'],
+        ['([unclosed', '坏规则'],
+    ]);
+
+    test('捕获组替换', () => {
+        assert.strictEqual(
+            lookupRegex(rules, 'Showing 1 to 100 of 1,465 entries'),
+            '显示第 1 至 100 项,共 1,465 项'
+        );
+        assert.strictEqual(lookupRegex(rules, '1,465 products match your filters'), '1,465 个商品符合筛选条件');
+    });
+
+    test('非法正则被丢弃,不影响其余规则', () => {
+        assert.strictEqual(rules.length, 2);
+    });
+
+    test('未命中/替换结果相同返回 null', () => {
+        assert.strictEqual(lookupRegex(rules, 'nothing matches this'), null);
+        const same = compileRules([['^foo$', 'foo']]);
+        assert.strictEqual(lookupRegex(same, 'foo'), null);
+    });
+
+    test('REGEX 段非法结构被 validateLocales 拒绝', () => {
+        assert.match(validateLocales({ STATIC: { h1: { A: 'a' } }, REGEX: {} }), /REGEX/);
+        assert.strictEqual(
+            validateLocales({ STATIC: { h1: { A: 'a' } }, REGEX: ['^x$', 'y'] }),
+            null
+        );
     });
 });
 
