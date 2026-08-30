@@ -1,0 +1,18 @@
+{
+  "buildNumber": 1,
+  "sources": {
+    "Chr_": {
+      "status": "unchanged",
+      "repoUsed": "Chr233/GM_Scripts",
+      "checkedAt": "2026-08-30T00:00:00.000Z",
+      "lastChangedAt": "2026-08-30T00:00:00.000Z",
+      "hashes": {
+        "sources/steamdb-dict.json": "e5b3065b1feaaabb48f5050dd4e1af007dc06baabc65ccf363ac52f24ac84523"
+      },
+      "versions": {
+        "dict": "2026-1-21"
+      },
+      "lastError": null
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "$comment": "自有补充词库:上游 SteamDB_CN.json 覆盖不到的词条,build.mjs 合并时优先级高于上游词库。只收录真机页面实测漏翻的词条,勿大批量堆词。结构:STATIC 按选择器分域(选择器可自拟,圈定作用域避免误伤),INPUT 是 placeholder,LABEL 是 aria-label,DYNAMIC 是动态内容的作用域词典。",
+  "DOC": {
+    "说明": "本文件为 steamdb-chinese-plus 自有补充词条,来源为真机实测漏翻"
+  },
+  "STATIC": {},
+  "INPUT": {},
+  "LABEL": {},
+  "DYNAMIC": {}
+}

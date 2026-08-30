@@ -1,0 +1,39 @@
+name: CI
+
+# push / PR 时验证:构建可复现、语法正确、已提交产物与源一致、模块单元测试通过。
+# 与 upstream-sync(定时)互补:上游同步只管词库更新,这里管人改的代码不把仓库改坏。
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+
+      - name: 构建产物并校验语法
+        run: |
+          node build.mjs
+          node --check steamdb-chinese-plus.user.js
+
+      # 防止手改 sources/ 或模块后忘记重新构建就提交,
+      # 导致线上产物与仓库源不一致
+      - name: 校验已提交产物与源一致
+        run: git diff --exit-code -- steamdb-chinese-plus.user.js
+
+      - name: 单元测试
+        run: node --test tests/i18n-core.test.mjs tests/check-upstream.test.mjs

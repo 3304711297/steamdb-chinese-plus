@@ -1,0 +1,18 @@
+{
+  "$comment": "上游来源配置。sources 按顺序尝试;每个条目内 mirrors 是候选仓库列表,cdn 是 jsDelivr/自有 CDN 兜底模板数组({repo}/{branch}/{path} 占位),在 raw.githubusercontent.com 被墙/被限时优先使用——注意 CDN 有缓存(最长约 24h),上游刚更新时兜底源可能短暂滞后,仅作容灾不作常规路径。",
+  "sources": [
+    {
+      "name": "Chr_",
+      "repo": "Chr233/GM_Scripts",
+      "mirrors": [],
+      "cdn": [
+        "https://cdn.jsdelivr.net/gh/{repo}@{branch}/{path}",
+        "https://raw.chrxw.com/GM_Scripts/{branch}/{path}"
+      ],
+      "branch": "master",
+      "files": [
+        { "local": "sources/steamdb-dict.json", "remote": "SteamDB/SteamDB_CN.json" }
+      ]
+    }
+  ]
+}
