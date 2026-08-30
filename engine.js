@@ -64,8 +64,11 @@ function applyTranslation(textNode, dict) {
     const key = trimmed.replace(/\s+/g, ' ');
     const zh = dict[key] ?? (REGEX_RULES.length ? lookupRegex(REGEX_RULES, key) : null);
     if (!zh) { logUnmatched(key, 'text'); return; }
-    // 只替换首个命中段,保留原文的前导/尾随空白
-    textNode.nodeValue = text.replace(trimmed, zh);
+    // 只替换首个命中段,保留原文的前导/尾随空白;记录回写值供 observer 识别自写
+    const next = text.replace(trimmed, zh);
+    if (next === text) return;
+    lastTextWrite.set(textNode, next);
+    textNode.nodeValue = next;
 }
 
 /** 翻译元素内的直接文本节点;无子元素时整个元素只有文本,直接处理其文本节点 */
@@ -100,8 +103,13 @@ function translateAttributes(root) {
         const raw = el.getAttribute('placeholder');
         if (!raw) continue;
         const zh = lookupSimple(INPUT_DICT, raw);
-        if (zh !== null) el.setAttribute('placeholder', raw.replace(raw.trim(), zh));
-        else logUnmatched(raw, 'placeholder');
+        if (zh === null) { logUnmatched(raw, 'placeholder'); continue; }
+        const next = raw.replace(raw.trim(), zh);
+        // 自己写回的值不再重复写:没有这一步,任何同引擎/其他翻译扩展的回写
+        // 都会经 attributes observer 再次进入这里,极端情况下互相触发成风暴
+        if (next === raw) continue;
+        lastAttrWrite.set(el, 'placeholder\0' + next);
+        el.setAttribute('placeholder', next);
     }
     const labelled = root.matches && root.matches('[aria-label]')
         ? [root, ...root.querySelectorAll('[aria-label]')]
@@ -110,8 +118,11 @@ function translateAttributes(root) {
         const raw = el.getAttribute('aria-label');
         if (!raw) continue;
         const zh = lookupSimple(LABEL_DICT, raw);
-        if (zh !== null) el.setAttribute('aria-label', raw.replace(raw.trim(), zh));
-        else logUnmatched(raw, 'aria-label');
+        if (zh === null) { logUnmatched(raw, 'aria-label'); continue; }
+        const next = raw.replace(raw.trim(), zh);
+        if (next === raw) continue;
+        lastAttrWrite.set(el, 'aria-label\0' + next);
+        el.setAttribute('aria-label', next);
     }
 }
 
@@ -123,8 +134,30 @@ function processRoot(root) {
 
 /* ---- 空闲批处理调度 ---- */
 const translatedNodes = new WeakSet();
+// 引擎自己写过的最终值(文本/属性),用于识别"自己触发的变更",
+// 避免自身写入 → observer → 重扫 的自反馈洪水(性能事故根因之一)
+const lastTextWrite = new WeakMap();
+const lastAttrWrite = new WeakMap();
 const pendingRoots = [];
+const pendingRootSet = new Set();
 let scheduled = false;
+
+/** 单轮处理预算:超出的根留到下一轮空闲,避免一次性冻结页面数秒 */
+const FLUSH_BUDGET = 300;
+
+function pushRoot(root) {
+    if (pendingRootSet.has(root)) return;
+    // 洪水合并:队列过长时直接退化为全页一根,本轮扫描总量有上界
+    if (pendingRoots.length >= FLUSH_BUDGET) {
+        for (const r of pendingRoots) pendingRootSet.delete(r);
+        pendingRoots.length = 0;
+        pendingRoots.push(document.body);
+        pendingRootSet.add(document.body);
+        return;
+    }
+    pendingRoots.push(root);
+    pendingRootSet.add(root);
+}
 
 function schedule() {
     if (scheduled) return;
@@ -137,7 +170,18 @@ function schedule() {
 function flushPending() {
     if (!pendingRoots.length) return;
     const roots = pendingRoots.splice(0);
+    for (const r of roots) pendingRootSet.delete(r);
+    let processed = 0;
     for (const root of roots) {
+        if (processed >= FLUSH_BUDGET && document.body) {
+            // 剩余根放回队列,等下一个空闲周期
+            for (const r of roots.slice(processed)) {
+                if (!pendingRootSet.has(r)) { pendingRoots.push(r); pendingRootSet.add(r); }
+            }
+            schedule();
+            break;
+        }
+        processed++;
         try {
             processRoot(root);
         } catch (e) {
@@ -148,7 +192,7 @@ function flushPending() {
 
 function processAll() {
     if (!document.body) return;
-    pendingRoots.push(document.body);
+    pushRoot(document.body);
     schedule();
 }
 
@@ -157,20 +201,30 @@ const observer = new MutationObserver((mutations) => {
     for (const m of mutations) {
         for (const node of m.addedNodes) {
             if (node.nodeType === Node.TEXT_NODE) {
+                // 脱离文档的临时文本节点(渲染框架水合时大量产生)直接忽略:
+                // 它真正被插入时会以父元素的 childList 变更进来,届时再扫父元素,
+                // 绝不能对每个孤立节点都退化为全页扫描(性能事故根因)
+                if (!node.parentElement) continue;
                 translatedNodes.delete(node);
-                pendingRoots.push(node.parentElement || document.body);
+                pushRoot(node.parentElement);
             } else if (node.nodeType === Node.ELEMENT_NODE) {
-                pendingRoots.push(node);
+                pushRoot(node);
             }
         }
-        // 框架就地改文本(表格排序常见):解除标记后以父元素为界重查
+        // 框架就地改文本:先排除引擎自己的回写,只对"别人改的"解除标记重查
         if (m.type === 'characterData' && m.target && m.target.nodeType === Node.TEXT_NODE && m.target.parentElement) {
-            translatedNodes.delete(m.target);
-            pendingRoots.push(m.target.parentElement);
+            if (lastTextWrite.get(m.target) === m.target.nodeValue) {
+                translatedNodes.add(m.target);
+            } else {
+                translatedNodes.delete(m.target);
+                pushRoot(m.target.parentElement);
+            }
         }
-        // 动态改 placeholder/aria-label:轻量直译该元素属性,不整树重扫。
-        // 自己写回的中文值无字母,重查必然空跑,不会死循环
+        // 动态改 placeholder/aria-label:轻量直译该元素属性,不整树重扫
         if (m.type === 'attributes' && m.target && m.target.nodeType === Node.ELEMENT_NODE) {
+            if (m.attributeName && lastAttrWrite.get(m.target) === m.attributeName + '\0' + m.target.getAttribute(m.attributeName)) {
+                continue; // 引擎自己的回写,跳过
+            }
             try { translateAttributes(m.target); } catch (e) { console.warn('[SteamDB中文] 属性翻译失败:', e); }
         }
     }
