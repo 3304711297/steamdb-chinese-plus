@@ -238,7 +238,10 @@
       "You have no special permissions.": "你没有特殊权限。",
       "Consider donating to get a donator badge!": "考虑捐赠以获得捐赠者徽章!",
       "Audit Log": "审计日志",
-      "This is an audit log of important events involving your account. Old logs are periodically deleted.": "这是涉及你账号的重要事件审计日志,旧日志会定期删除。"
+      "This is an audit log of important events involving your account. Old logs are periodically deleted.": "这是涉及你账号的重要事件审计日志,旧日志会定期删除。",
+      "Top Currently Global Selling Steam Games": "当前全球热销 Steam 游戏",
+      "Most Played on Steam By Daily Active Users": "Steam 日活最高游戏",
+      "Top Rated Steam Releases": "Steam 最高评分发售游戏"
     }
   },
   "INPUT": {},
