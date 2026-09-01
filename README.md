@@ -10,9 +10,16 @@
 ## 安装
 
 1. 浏览器安装用户脚本管理器([ScriptCat 脚本猫](https://scriptcat.org/) / Tampermonkey / Violentmonkey 均可)
-2. 点击安装:[steamdb-chinese-plus.user.js](https://raw.githubusercontent.com/3304711297/steamdb-chinese-plus/main/steamdb-chinese-plus.user.js)
+2. 点击安装,直连 / 镜像双入口任选其一:
 
-脚本管理器会通过 `@updateURL` 自动检查更新。
+   - 直连:[steamdb-chinese-plus.user.js](https://raw.githubusercontent.com/3304711297/steamdb-chinese-plus/main/steamdb-chinese-plus.user.js)
+   - 镜像(国内建议用镜像):[steamdb-chinese-plus.user.js](https://cdn.jsdelivr.net/gh/3304711297/steamdb-chinese-plus@main/steamdb-chinese-plus.user.js)
+
+> - 分支文件在 jsDelivr 有约 12 小时 CDN 缓存,新版本可能延迟生效;急着更新可走直连
+> - 使用脚本猫的用户同样支持上述直连/镜像两种安装方式,更新检测逻辑一致
+> - 脚本管理器会通过 `@updateURL`(指向 raw 直连地址)自动检查更新
+
+更新检测说明:`@version` 递增是脚本管理器判断"是否为更新版本"的核心版本依据,实际更新检测还涉及 `@updateURL`、安装源与管理器策略。
 
 ## 相比原版 SteamDB_CN 的改进
 
@@ -21,6 +28,19 @@
 - **DYNAMIC 段已实装**:原词库的 DYNAMIC(动态作用域词典)标注"暂未实装",本引擎已实装
 - **攒词条模式**:脚本管理器菜单一键开关"输出未命中词",配合本仓库的补充词库机制持续补词
 - **上游词库自动跟进**:GitHub Actions 每 6 小时检测词库上游更新,有更新自动重组并发新版本;raw 不可达时自动走 jsDelivr / 作者自有 CDN 容灾;上游消失不影响使用
+
+## 词条优先级
+
+词库合并顺序为 **base → supplement 覆盖 → build**:
+
+- `sources/steamdb-dict.json` 是上游快照(base),自动同步只整文件覆盖它;
+- `sources/steamdb-supplement.json` 是自有补充词库,合并时优先级高于 base;
+- `build.mjs` 按上述顺序合并后内联进产物。
+
+两种冲突场景的处理规则:
+
+1. **上游同 key 覆盖**:supplement 中已有的词条在合并时覆盖 base 中同 key 词条(supplement 同选择器/同键的译文优先生效)。若想改回上游译文,删除 supplement 中对应词条即可。
+2. **上游 key 更名(旧 key → 新 key)**:同步只保留新 key,**不会自动迁移历史 key**。旧 key 在 supplement 中的自有翻译不会自动搬到新 key 下,由维护者按需在 supplement 中人工迁移/补录——迁移之前,新 key 直接使用上游译文,旧 key 的 supplement 词条保持原样(上游已删除该 key 时它不再被站点文本命中,不会误伤)。
 
 ## 词库来源与致谢
 

@@ -36,4 +36,4 @@ jobs:
         run: git diff --exit-code -- steamdb-chinese-plus.user.js
 
       - name: 单元测试
-        run: node --test tests/engine-dom.test.mjs tests/i18n-core.test.mjs tests/check-upstream.test.mjs
+        run: node --test tests/engine-dom.test.mjs tests/i18n-core.test.mjs tests/word-priority.test.mjs tests/check-upstream.test.mjs
