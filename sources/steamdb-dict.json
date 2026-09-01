@@ -18,7 +18,6 @@
     "ul>li,ul>li>a,ul>li>share-action,.header-navbar>a,.header-login>span": {
       "About": " 关于",
       "Blog": "博客",
-      "Discord": "Discord",
       "Discord Bot": "Discord 机器人",
       "FAQ & help": "FAQ & 帮助",
       "Donate & contribute": "捐赠 & 贡献",
@@ -86,7 +85,6 @@
       "Settings": "设置",
       "Sign out": "登出",
       "Steam Status": "Steam 状态",
-      "Steam Web API": "Steam Web API",
       "Level": "等级 ",
       "years": " 年",
       "Away": "离开",
@@ -131,8 +129,6 @@
       "Avg % Gain": "平均值的增长率",
       "% Gain": "增长率",
       "Gain": "增长量",
-      "Min Daily Peak": "Min Daily Peak",
-      "Avg Daily Peak": "Avg Daily Peak",
       "Twitch Peak": "Twitch 高峰",
       "Name": "名称",
       "Created": "创建时间",
@@ -560,7 +556,6 @@
     },
     ".container-hello>div>p,.container-hello>div>p>a,.container>div>p>a,.container>div>p,.container>p,.selected>p,.selected>p>a": {
       "This third-party website gives you better insight into the": "这个第三方网站可让您更好地了解 ",
-      "Steam": "Steam",
       "platform and everything in its database.": " 平台及其数据库中的所有内容.",
       "Look through our frequently asked questions": "查阅常见问题FAQ",
       "to learn more about SteamDB,": "来更深入地了解SteamDB，",
@@ -569,11 +564,9 @@
       "Why are upcoming sales marked as unconfirmed?": "为什么即将到来的销售标记为未确认?",
       "Do you know when the next sale is and what discounts will it have?": "SteamDB 是如何得知下一次促销的时间以及折扣情况的?",
       "Any SteamID format is accepted, enter anything you want and we will convert it on the fly for you.": " 输入 SteamID 的任意形式, 我们将会自动将其转换为 SteamID.",
-      "This page is generated dynamically and lists most free packages that can be activated if you own base game, including demos.": "此页面是基于您拥有的游戏动态生成的, 列出了您拥有基础游戏的免费DLC, FOD, 以及免费试玩版.",
       "Based on the configuration above, this is where we think the save files are located.": "根据以上配置，我们认为存档文件所在位置如下.",
       "Read more about cloud saves in Steamworks documentation.": "查阅 Steamworks 文档以了解更多关于云存档的信息.",
-      "Price does not take into account what you already own.": "显示的价格不包含您已拥有的游戏的价格",
-      "Deleted bundles, bundles with no price in your currency, and bundles with no base discount are hidden from this page. You can use search in the navbar.": "已删除的捆绑包、没有以您的货币计价的捆绑包以及没有基本折扣的捆绑包将在此页面上隐藏.您可以使用导航栏中的搜索功能."
+      "Price does not take into account what you already own.": "显示的价格不包含您已拥有的游戏的价格"
     },
     ".header-disclaimer": {
       "SteamDB is a hobby project and is not affiliated with Valve or Steam.": "SteamDB 是一个业余项目, 与 Valve 或 Steam 无关.",
@@ -679,16 +672,12 @@
     "a.badge-donator": {
       "DONATOR": " 贡献者"
     },
-    "a.badge-donator": {
-      "DONATOR": " 贡献者"
-    },
     ".header-two-things>a": {
       "In-Game": "游戏中"
     },
     ".warning-no-games *": {
       "Game playtime is hidden by default on Steam, you can change": "游戏时间默认在Steam上是隐藏的, 你可以改变 ",
-      "your Steam profile privacy settings": "Steam 个人资料隐私设置",
-      "TODO": "TODO"
+      "your Steam profile privacy settings": "Steam 个人资料隐私设置"
     },
     ".row-stats span,.row-stats em,.row-stats b": {
       "Average price": "平均价值 ",
@@ -824,8 +813,6 @@
     },
     ".panel-heading,.panel-heading~p,.panel-heading>span,.panel-heading>a,.panel-heading~p>a": {
       "Frequently Asked Questions": " 常见问题",
-      "This page will calculate the approximate value of your Steam account by looking up your games on your Steam community profile, using the current prices for each game on the Steam store.": "此页面将依据 Steam 商店中每款游戏的实时价格, 根据您的 Steam 社区个人资料中拥有的游戏来计算您的 Steam 帐户的大致价值.",
-      "We can calculate account worth in all currencies supported by Steam. Our site has price history for all games in all currencies!": "我们可以用 Steam 支持的所有货币单位计算账户的价值. 我们拥有所有游戏在所有货币单位下的价格历史!",
       "0. Unnamed launch option": "0. 未命名启动选项",
       "1. Unnamed launch option": "1. 未命名启动选项",
       "2. Unnamed launch option": "2. 未命名启动选项",
@@ -893,10 +880,8 @@
       "you with your Steam account or games!!": " 帮你处理 Steam 账户或游戏!!",
       "We are not interested in selling ads on our website at this time.": "我们目前也没有兴趣接受任何广告投放.",
       "SteamDB is not affiliated with Valve or Steam. We do not sell games or trade items.": "SteamDB 不隶属于 Valve 或 Steam. 我们也不出售游戏或是交易物品.",
-      "Users claiming to be a Valve employee or Steam moderator, accounts asking to verify your items, and users who send you a message which insist you need to trade your items to them for investigation or security reasons should immediately be reported for trade scams.": "一旦遇到自称是 Valve 员工或 Steam 版主的用户, 要求验证您账户中物品的, 或者向您发送消息坚持您需要向他们交易您的物品以进行调查的, 都是交易诈骗, 请立即举报.",
       "If you are trying to contact Steam, use Steam Support.": "如果您尝试联系 Steam, 请使用 Steam 客服.",
       "Why are we doing this?": "我们为什么要做这个东西?",
-      "SteamDB was created to give more insight into the Steam database. We track updates for both applications and packages, we keep a history of all changes made to both applications and packages. We also have a range of other tools such as the": "创建 SteamDB 是为了更深入地了解 Steam 数据库. 我们跟踪 APP 和 SUB 的更新, 我们保留对 APP 和 SUB 做的所有更改的历史记录. 我们还提供一些其他工具, 例如: ",
       "Calculator": "计算器",
       "to give people insight into their Steam accounts that would otherwise be impossible.": " 可以让人们深入了解他们(本人或他人)的 Steam 帐户, 在这之前是根本做不到的.",
       "SteamDB is a purely informational website, it does not provide any downloads, and does not solicit piracy.": "SteamDB 是一个纯粹的数据库网站, 它不提供任何下载, 也不支持盗版.",
@@ -904,8 +889,6 @@
       "This website is being developed by": "SteamDB 由xPaw开发 ",
       "How are we getting this information?": "我们的资料从何而来?",
       "We use": "我们使用 ",
-      "to interface with the Steam network. We request changes for all applications and packages once in a while, but mostly rely on Steam's own update system which automatically notifies us when an application or package updates.": " 来从 Steam 网络获取数据. 我们会不断为所有的 APP 和 SUB 请求更新, 不过在大多数情况下, 我们依赖于 Steam 的自动更新系统, 当 APP 或 SUB 更新时会自动通知我们.",
-      "All of the basic application and package information we provide (unless noted otherwise) is publicly available from Steam itself, and can be acquired by anyone with a regular Steam account. For example, if you launch Steam with the": "我们提供的所有基础 APP 和 SUB 的数据(除非特别注明), 其它人也都可以通过普通的 Steam 账号, 从 Steam 获取得这些信息. 例如, 如果你启动 Steam 时带上启动参数 ",
       "option and give the command": " 然后使用命令 ",
       "it'll display most of the information we have on our page for": " 它将会显示有关于 ",
       "Team Fortress 2": "军团要塞2",
@@ -917,13 +900,10 @@
       ". Also take a look at": " . 也可以看看 ",
       "which provides a lot of useful commands.": " 它提供了许多有用的命令.",
       "If you want a Node.JS library, take a look at": "如果使用 Node.JS , 可以查阅这个项目 ",
-      ". There are libraries to interact with Steam in many different languages, if you prefer something else just search for it.": ". 有许多用不同语言编写的库可以与 Steam 交互, 如果你有需要的话自行搜寻即可.",
       "If parsing appinfo.vdf is enough for your use case (accessing games you own), then a look at a": "如果你正在解析 appinfo. vdf 对于您的用例(访问你自己的游戏)来说已经足够了, 你可以查阅这个项目 ",
       "If you want to download specific depots and manifests, use": "如果您想下载特定的仓库和清单, 请使用 ",
       "(an alternative to steamcmd).": " (steamcmd 的替代品).",
       "Does SteamDB have an API?": "SteamDB 有 API 吗?",
-      "In short, no. We believe if you need to get Steam data, you can get it from Steam directly using their WebAPI or using libraries like SteamKit (see above).": "简而言之, 没有. 我们相信, 如果你需要获取 Steam 数据, 你可以直接使用他们的 WebAPI 或使用类似 SteamKit 的库(见上文)直接从Steam获取数据.",
-      "SteamDB is a community website and we do not make money, and maintaining the site is already enough work for us. Creating a good API is a lot of work and a big vector for abuse which we are not equipped to deal with.": "SteamDB 是一个社区网站, 我们不赚钱, 维护网站的工作量对我们来说已经很不容易了. 编写一个好用的 API 是一项繁重的工作, 同时也可能导致滥用.",
       "If you are looking to get real time updates, you can fork our": "如果你希望实时获得更新, 您可以基于这个项目  ",
       "and modify it your needs.": " 二次开发来实现想要的效果.",
       "Can I use auto-refreshing plugins or automatically scrape/crawl SteamDB?": "我可以使用自动刷新插件或爬虫去抓取 SteamDB 的数据吗?",
@@ -965,14 +945,10 @@
       "🙏 Help SteamDB continue tracking data by": "\n🙏 请帮助 SteamDB 继续追踪数据, 通过\n",
       "donating Steam keys or using token dumper program": "捐赠 Steam Key 或使用 Token Dumper"
     },
-    ".tab-pane>p": {
-      "This app is not included in any package known to us. As packages now require tokens, SteamDB needs a token to access package info.": "此 APP 没有包含在我们已知的任何 SUB 中. 因为读取 SUB 信息需要访问凭据, 所以 SteamDB 暂时无法获取该 SUB 的信息."
-    },
     ".footer-copyright>div>p,.footer-copyright>div>p>a": {
       "SteamDB is a hobby project and is not affiliated with Valve or Steam. All times on the site are UTC.": "SteamDB是一个爱好项目，与 Valve 或 Steam 无关.网站上的所有时间均为协调世界时（UTC）.",
       "Fair use disclaimer": "合理使用声明",
-      "Privacy": "隐私条款",
-      "Steam and the Steam logo are trademarks of Valve Corporation. All other trademarks are property of their respective owners.": "Steam 和 Steam 标识是Valve Corporation的商标.所有其他商标均归其各自所有者所有."
+      "Privacy": "隐私条款"
     },
     ".community-item,.community-item>div,.community-item>b,.span12>p": {
       "Level 1": "\n1 级",
@@ -1108,14 +1084,12 @@
       "Simulation": "模拟",
       "Strategy": "策略",
       "RPG": "角色扮演",
-      "2D": "2D",
       "Atmospheric": "氛围",
       "Puzzle": "解谜",
       "Pixel Graphics": "像素图形",
       "Story Rich": "剧情丰富",
       "Free to Play": "免费",
       "Fantasy": "奇幻",
-      "3D": "3D",
       "Multiplayer": "多人",
       "Colorful": "彩色",
       "Cute": "可爱",
@@ -1249,7 +1223,6 @@
       "Nature": "自然",
       "Board Game": "棋盘游戏",
       "Tabletop": "桌上游戏",
-      "2.5D": "2.5D",
       "Action Roguelike": "动作类Rogue",
       "Music": "音乐",
       "Experimental": "试验性",
@@ -1259,7 +1232,6 @@
       "Driving": "驾驶",
       "Economy": "经济",
       "Flight": "飞行",
-      "LGBTQ+": "LGBTQ+",
       "Tower Defense": "塔防",
       "Clicker": "点击游戏",
       "Fighting": "格斗",
@@ -1370,7 +1342,6 @@
       "Word Game": "文字游戏",
       "Time Manipulation": "时空操控",
       "Agriculture": "农业",
-      "4X": "4X",
       "Pirates": "海盗",
       "Hex Grid": "六角格棋盘",
       "Hero Shooter": "英雄射击",
@@ -1427,7 +1398,6 @@
       "Auto Battler": "自走棋",
       "Party Game": "社交聚会游戏",
       "Naval Combat": "海战",
-      "Kickstarter": "Kickstarter",
       "Cooking": "烹饪",
       "Typing": "打字",
       "Soccer": "足球",
@@ -1460,7 +1430,6 @@
       "Sniper": "狙击手",
       "World War I": "一战",
       "Roguelike Deckbuilder": "卡牌构建式类Rogue",
-      "TrackIR": "TrackIR",
       "Boxing": "拳击",
       "360 Video": "360视频",
       "LEGO": "乐高",
@@ -1513,7 +1482,6 @@
       "Voice Control": "声控",
       "Bowling": "保龄球",
       "Electronic": "电子",
-      "ATV": "ATV",
       "Benchmark": "标杆测试",
       "Skiing": "滑雪",
       "Snowboarding": "单板滑雪",
@@ -1549,9 +1517,7 @@
     "Steam Workshop": "Steam 创意工坊",
     "Steam Cloud": "Steam 云",
     "Steam Trading Cards": "Steam 集换式卡牌",
-    "Discord": "Discord",
     "Twitter": "推特",
-    "GitHub": "GitHub",
     "Steam Group": "Steam 组",
     "View article on PCGamingWiki": "查看 PCG Wiki 上的文章",
     "Blue discount — Product has not been this cheap before": "蓝色折扣 - 新史低 (当前价格比之前的历史最低价格还要低)",

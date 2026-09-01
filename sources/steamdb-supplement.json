@@ -115,7 +115,6 @@
       "Week": "周",
       "Purple discount — Product is priced on par with lowest recorded price in last two years": "紫色折扣 - 该商品价格与近两年的历史最低价持平",
       "Lighter blue highlight: Previous low was 1.5+ years ago OR 50%+ price drop": "浅蓝高亮:上一个史低在 1.5 年以上之前,或降价 50% 以上",
-      "Roguelite": "Roguelite",
       "Incremental": "放置",
       "Puzzle Platformer": "解谜平台",
       "Dialogue Heavy": "大量对话",
@@ -259,33 +258,117 @@
   },
   "DYNAMIC": {},
   "REGEX": [
-    ["^Showing (\\d+) to (\\d+) of ([\\d,]+) entries$", "显示第 $1 至 $2 项,共 $3 项"],
-    ["^Displaying change (\\d+) of ([\\d,]+)$", "正在显示更改 $1 / 共 $2 条"],
-    ["^([\\d,]+) products match your filters$", "$1 个商品符合筛选条件"],
-    ["^at -(\\d+)%$", "折扣 $1%"],
-    ["^Jan '(\\d{2})$", "20$1 年 1 月"],
-    ["^Feb '(\\d{2})$", "20$1 年 2 月"],
-    ["^Mar '(\\d{2})$", "20$1 年 3 月"],
-    ["^Apr '(\\d{2})$", "20$1 年 4 月"],
-    ["^May '(\\d{2})$", "20$1 年 5 月"],
-    ["^Jun '(\\d{2})$", "20$1 年 6 月"],
-    ["^Jul '(\\d{2})$", "20$1 年 7 月"],
-    ["^Aug '(\\d{2})$", "20$1 年 8 月"],
-    ["^Sep '(\\d{2})$", "20$1 年 9 月"],
-    ["^Oct '(\\d{2})$", "20$1 年 10 月"],
-    ["^Nov '(\\d{2})$", "20$1 年 11 月"],
-    ["^Dec '(\\d{2})$", "20$1 年 12 月"],
-    ["^View patch notes for (.+) update:$", "查看 $1 更新的补丁说明:"],
-    ["^\\(across (\\d+) apps\\)$", "(跨 $1 个应用)"],
-    ["^\\+(\\d+) apps$", "+$1 个应用"],
-    ["^([\\d,]+) XP$", "$1 经验值"],
-    ["^Summer Sale (\\d{4})$", "$1 夏季促销"],
-    ["^Winter Sale (\\d{4})$", "$1 冬季促销"],
-    ["^Summer Collection (\\d{4})$", "$1 夏季徽章合集"],
-    ["^Winter Collection (\\d{4})$", "$1 冬季徽章合集"],
-    ["^Steam Replay (\\d{4})$", "$1 Steam 年度回顾"],
-    ["^Steam Awards Nomination Committee (\\d{4})$", "$1 Steam 大奖提名委员会"],
-    ["^Steam Awards (\\d{4})$", "$1 Steam 大奖"],
-    ["^(\\d+) hours?, (\\d+) minutes? and (\\d+) seconds?$", "$1 小时 $2 分 $3 秒"]
+    [
+      "^Showing (\\d+) to (\\d+) of ([\\d,]+) entries$",
+      "显示第 $1 至 $2 项,共 $3 项"
+    ],
+    [
+      "^Displaying change (\\d+) of ([\\d,]+)$",
+      "正在显示更改 $1 / 共 $2 条"
+    ],
+    [
+      "^([\\d,]+) products match your filters$",
+      "$1 个商品符合筛选条件"
+    ],
+    [
+      "^at -(\\d+)%$",
+      "折扣 $1%"
+    ],
+    [
+      "^Jan '(\\d{2})$",
+      "20$1 年 1 月"
+    ],
+    [
+      "^Feb '(\\d{2})$",
+      "20$1 年 2 月"
+    ],
+    [
+      "^Mar '(\\d{2})$",
+      "20$1 年 3 月"
+    ],
+    [
+      "^Apr '(\\d{2})$",
+      "20$1 年 4 月"
+    ],
+    [
+      "^May '(\\d{2})$",
+      "20$1 年 5 月"
+    ],
+    [
+      "^Jun '(\\d{2})$",
+      "20$1 年 6 月"
+    ],
+    [
+      "^Jul '(\\d{2})$",
+      "20$1 年 7 月"
+    ],
+    [
+      "^Aug '(\\d{2})$",
+      "20$1 年 8 月"
+    ],
+    [
+      "^Sep '(\\d{2})$",
+      "20$1 年 9 月"
+    ],
+    [
+      "^Oct '(\\d{2})$",
+      "20$1 年 10 月"
+    ],
+    [
+      "^Nov '(\\d{2})$",
+      "20$1 年 11 月"
+    ],
+    [
+      "^Dec '(\\d{2})$",
+      "20$1 年 12 月"
+    ],
+    [
+      "^View patch notes for (.+) update:$",
+      "查看 $1 更新的补丁说明:"
+    ],
+    [
+      "^\\(across (\\d+) apps\\)$",
+      "(跨 $1 个应用)"
+    ],
+    [
+      "^\\+(\\d+) apps$",
+      "+$1 个应用"
+    ],
+    [
+      "^([\\d,]+) XP$",
+      "$1 经验值"
+    ],
+    [
+      "^Summer Sale (\\d{4})$",
+      "$1 夏季促销"
+    ],
+    [
+      "^Winter Sale (\\d{4})$",
+      "$1 冬季促销"
+    ],
+    [
+      "^Summer Collection (\\d{4})$",
+      "$1 夏季徽章合集"
+    ],
+    [
+      "^Winter Collection (\\d{4})$",
+      "$1 冬季徽章合集"
+    ],
+    [
+      "^Steam Replay (\\d{4})$",
+      "$1 Steam 年度回顾"
+    ],
+    [
+      "^Steam Awards Nomination Committee (\\d{4})$",
+      "$1 Steam 大奖提名委员会"
+    ],
+    [
+      "^Steam Awards (\\d{4})$",
+      "$1 Steam 大奖"
+    ],
+    [
+      "^(\\d+) hours?, (\\d+) minutes? and (\\d+) seconds?$",
+      "$1 小时 $2 分 $3 秒"
+    ]
   ]
 }
