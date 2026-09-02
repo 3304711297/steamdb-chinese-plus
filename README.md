@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://raw.githubusercontent.com/3304711297/steamdb-chinese-plus/main/steamdb-chinese-plus.user.js"><img src="https://img.shields.io/badge/Install-Userscript-brightgreen?style=flat-square&logo=tampermonkey" alt="Install"></a>
   <a href="https://github.com/3304711297/steamdb-chinese-plus/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/3304711297/steamdb-chinese-plus/ci.yml?branch=main&label=CI%20Build&style=flat-square" alt="CI Status"></a>
-  <a href="https://github.com/3304711297/steamdb-chinese-plus/actions/workflows/sync-upstream.yml"><img src="https://img.shields.io/github/actions/workflow/status/3304711297/steamdb-chinese-plus/sync-upstream.yml?branch=main&label=Sync%20Upstream%20(6h)&style=flat-square" alt="Sync Upstream"></a>
+  <a href="https://github.com/3304711297/steamdb-chinese-plus/actions/workflows/upstream-sync.yml"><img src="https://img.shields.io/github/actions/workflow/status/3304711297/steamdb-chinese-plus/upstream-sync.yml?branch=main&label=Sync%20Upstream%20(6h)&style=flat-square" alt="Sync Upstream"></a>
   <img src="https://img.shields.io/badge/Target-SteamDB.info-1b2838?style=flat-square&logo=steam" alt="SteamDB">
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg?style=flat-square" alt="License"></a>
 </p>
@@ -75,8 +75,8 @@
 ## 🛠️ 本地开发与测试
 
 ```bash
-# 1. 运行单测
-node --test tests/i18n-core.test.mjs tests/check-upstream.test.mjs
+# 1. 运行全量单测套件
+node --test tests/engine-dom.test.mjs tests/i18n-core.test.mjs tests/word-priority.test.mjs tests/check-upstream.test.mjs
 
 # 2. 手动检测上游词库更新 (退出码 10 代表有新内容)
 node scripts/check-upstream.mjs
@@ -95,7 +95,7 @@ node --check steamdb-chinese-plus.user.js
 
 ## 📄 致谢与开源协议
 
-- 词库源自 [Chr_/GM_Scripts](https://github.com/Chr_/GM_Scripts) 的 `SteamDB/SteamDB_CN.json`（AGPL-3.0）；
+- 词库源自 [Chr233/GM_Scripts](https://github.com/Chr233/GM_Scripts) 的 `SteamDB/SteamDB_CN.json`（AGPL-3.0）；
 - 核心翻译引擎为原创独立实现，采用 CSS 选择器作用域精准匹配，确保游戏原名、价格与数据绝对安全。
 
 本项目依据 **GNU Affero General Public License v3.0 (AGPL-3.0)** 开源。
