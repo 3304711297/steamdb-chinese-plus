@@ -11,7 +11,7 @@
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateBuildNumber } from '../build.mjs';
+import { validateBuildNumber, resolveRawUrl } from '../build.mjs';
 
 describe('validateBuildNumber(build 状态校验——防版本倒退)', () => {
     test('合法 buildNumber 通过并原样返回', () => {
@@ -43,5 +43,29 @@ describe('validateBuildNumber(build 状态校验——防版本倒退)', () => {
     test('顶层非对象(null/数组)被拒绝', () => {
         assert.strictEqual(validateBuildNumber(null).ok, false);
         assert.strictEqual(validateBuildNumber([1]).ok, false);
+    });
+});
+
+describe('resolveRawUrl(分发通道 URL 解析)', () => {
+    test('默认参数返回 rolling 通道 main 分支地址', () => {
+        assert.strictEqual(
+            resolveRawUrl([]),
+            'https://raw.githubusercontent.com/3304711297/steamdb-chinese-plus/main/steamdb-chinese-plus.user.js'
+        );
+        assert.strictEqual(
+            resolveRawUrl(['--other-flag', '--channel=rolling']),
+            'https://raw.githubusercontent.com/3304711297/steamdb-chinese-plus/main/steamdb-chinese-plus.user.js'
+        );
+    });
+
+    test('包含 --channel=stable 时返回 release latest 资产下载直链', () => {
+        assert.strictEqual(
+            resolveRawUrl(['--channel=stable']),
+            'https://github.com/3304711297/steamdb-chinese-plus/releases/latest/download/steamdb-chinese-plus.user.js'
+        );
+        assert.strictEqual(
+            resolveRawUrl(['node', 'build.mjs', '--channel=stable']),
+            'https://github.com/3304711297/steamdb-chinese-plus/releases/latest/download/steamdb-chinese-plus.user.js'
+        );
     });
 });

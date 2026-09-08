@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/3304711297/steamdb-chinese-plus/main/steamdb-chinese-plus.user.js"><img src="https://img.shields.io/badge/Install-Rolling%20Track-brightgreen?style=flat-square&logo=tampermonkey" alt="Install Rolling Track"></a>
-  <a href="https://github.com/3304711297/steamdb-chinese-plus/releases"><img src="https://img.shields.io/badge/Release%20Baseline-v1.1.0-blue?style=flat-square&logo=github" alt="Release Baseline v1.1.0"></a>
+  <a href="https://github.com/3304711297/steamdb-chinese-plus/releases"><img src="https://img.shields.io/badge/Release%20Baseline-v1.4.4-blue?style=flat-square&logo=github" alt="Release Baseline v1.4.4"></a>
   <a href="https://github.com/3304711297/steamdb-chinese-plus/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/3304711297/steamdb-chinese-plus/ci.yml?branch=main&label=CI%20Build&style=flat-square" alt="CI Status"></a>
   <a href="https://github.com/3304711297/steamdb-chinese-plus/actions/workflows/upstream-sync.yml"><img src="https://img.shields.io/github/actions/workflow/status/3304711297/steamdb-chinese-plus/upstream-sync.yml?branch=main&label=Sync%20Upstream%20(6h)&style=flat-square" alt="Sync Upstream"></a>
   <img src="https://img.shields.io/badge/Target-SteamDB.info-1b2838?style=flat-square&logo=steam" alt="SteamDB">
@@ -34,12 +34,12 @@
 | :--- | :--- | :--- | :--- |
 | 🚀 **滚动通道 (Rolling)**<br>*(推荐·GitHub 直连)* | [⚡ 一键安装 steamdb-chinese-plus.user.js](https://raw.githubusercontent.com/3304711297/steamdb-chinese-plus/main/steamdb-chinese-plus.user.js) | **默认推荐**。跟随 `main` 主分支，第一时间获得引擎优化、新特性与词库更新，无 CDN 缓存延迟 | **高频静默更新**<br>代码提交或每 6h 词库同步时即时生效 |
 | 🌐 **滚动通道 (Rolling)**<br>*(备选·CDN 镜像)* | [🔗 一键安装 (jsDelivr 镜像)](https://cdn.jsdelivr.net/gh/3304711297/steamdb-chinese-plus@main/steamdb-chinese-plus.user.js) | 适合国内网络无法顺畅直连 GitHub Raw 的网络环境（CDN 节点存在约 12 小时缓存） | **高频**<br>跟随 `main` 分支（存在 CDN 缓存窗口） |
-| 🛡️ **稳定通道 (Stable)**<br>*(最新稳定版直链)* | [📦 一键安装 Releases 最新资产](https://github.com/3304711297/steamdb-chinese-plus/releases/latest/download/steamdb-chinese-plus.user.js) | **极致稳定**。基线对齐 `v1.1.0`，仅在发布正式 GitHub Release 时更新，免受高频自动同步扰动 | **低频**<br>仅在正式发布里程碑 Release 标签时更新 |
+| 🛡️ **稳定通道 (Stable)**<br>*(最新稳定版直链)* | [📦 一键安装 Releases 最新资产](https://github.com/3304711297/steamdb-chinese-plus/releases/latest/download/steamdb-chinese-plus.user.js) | **极致稳定**。基线对齐 `v1.4.4`，仅在发布正式 GitHub Release 时更新，免受高频自动同步扰动 | **低频**<br>仅在正式发布里程碑 Release 标签时更新 |
 | 📜 **稳定通道 (Stable)**<br>*(历史版本归档)* | [🗄️ 浏览 GitHub Releases 归档列表](https://github.com/3304711297/steamdb-chinese-plus/releases) | 查看完整发版说明、历史变更记录，或下载历史指定版本以供锁定回滚 | 按需手动下载与回滚 |
 
 > 💡 **更新与切换说明**：
 > - **滚动通道**脚本内置 `@updateURL` 与 `@downloadURL` 指向 `main` 分支，脚本管理器将跟随主分支日常演进平滑静默升级。
-> - **稳定通道**脚本资产锚定在 GitHub Releases，稳定版本基线从 **v1.1.0** 起步。
+> - **稳定通道**脚本资产锚定在 GitHub Releases，稳定版本基线从 **v1.4.4** 起步。
 > - 滚动通道与稳定通道产物命名一致，如需切换通道，直接点击目标通道链接重新安装覆盖即可。
 
 ---
@@ -98,15 +98,15 @@ node --check steamdb-chinese-plus.user.js
 
 | 维度 | 🚀 滚动通道 (Rolling Track) | 🛡️ 稳定通道 (Stable Track) |
 | :--- | :--- | :--- |
-| **代码基线** | `main` 分支最新代码 | GitHub Releases 标签版本（**首个基线对齐 `v1.1.0`**） |
+| **代码基线** | `main` 分支最新代码 | GitHub Releases 标签版本（**首个基线对齐 `v1.4.4`**） |
 | **分发地址** | `main/steamdb-chinese-plus.user.js` | [Releases 最新资产永久直链](https://github.com/3304711297/steamdb-chinese-plus/releases/latest/download/steamdb-chinese-plus.user.js) |
 | **更新触发** | 主干 Commit 合并、每 6h 定时词库同步 | 维护者正式切出 GitHub Release 时发布 |
 | **适用人群** | 追求最新特性与最新词库、愿意协助反馈体验的用户 | 追求生产级绝对稳定、不希望受频繁更新打扰的用户 |
 | **版本回滚** | 随 `main` 滚动前进 | 支持随时在 [Releases 归档](https://github.com/3304711297/steamdb-chinese-plus/releases) 下载固定历史版本 |
 
 #### 1. 版本基线演进（Release Baseline）
-- **基线版本**：本项目首个稳定通道基线正式确立为 **v1.1.0**。
-- **历史说明**：仓库早期采用纯滚动开发模式且未维护历史 Git tag；自 **v1.1.0** 起全面建立正式 Release 里程碑管理，后续稳定版本均遵循规范打 Tag 发布。
+- **基线版本**：本项目首个稳定通道基线正式确立为 **v1.4.4**。
+- **历史说明**：仓库早期采用纯滚动开发模式且未维护历史 Git tag；自 **v1.4.4** 起全面建立正式 Release 里程碑管理，后续稳定版本均遵循规范打 Tag 发布。
 
 #### 2. 构建版本号构成规则
 脚本元数据 `@version` 遵循 `<功能主版本>.<同步构建号>` 格式（例如 `1.4.4`）：

@@ -53,6 +53,18 @@ function inlineCore(source) {
     return stripped.trimEnd();
 }
 
+/**
+ * 解析分发通道对应的脚本更新/下载地址
+ * @param {string[]} [argv=process.argv]
+ * @returns {string}
+ */
+function resolveRawUrl(argv = process.argv) {
+    const isStable = argv.includes('--channel=stable');
+    return isStable
+        ? `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download/steamdb-chinese-plus.user.js`
+        : `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/steamdb-chinese-plus.user.js`;
+}
+
 function main() {
     const state = JSON.parse(readFileSync(join(root, 'upstream.state.json'), 'utf8'));
     const validated = validateBuildNumber(state);
@@ -67,7 +79,8 @@ function main() {
     const VERSION = `${OUR_BASE}.${BUILD_NUMBER}`;
     const UPSTREAM_DICT_VERSION =
         (state.sources && state.sources.Chr_ && state.sources.Chr_.versions?.dict) || '未知';
-    const RAW_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/steamdb-chinese-plus.user.js`;
+    const isStable = process.argv.includes('--channel=stable');
+    const RAW_URL = resolveRawUrl(process.argv);
 
     const HEADER = `// ==UserScript==
 // @name         SteamDB 中文化增强版
@@ -153,7 +166,7 @@ function main() {
 
     const outPath = join(root, 'steamdb-chinese-plus.user.js');
     writeFileSync(outPath, output, 'utf8');
-    console.log(`已生成: ${outPath} (${output.length} 字节,版本 ${VERSION},上游词库 v${UPSTREAM_DICT_VERSION},${entryCount} 词条)`);
+    console.log(`已生成: ${outPath} (${output.length} 字节,通道 ${isStable ? 'stable' : 'rolling'},版本 ${VERSION},上游词库 v${UPSTREAM_DICT_VERSION},${entryCount} 词条)`);
 }
 
 /**
@@ -164,4 +177,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     main();
 }
 
-export { validateBuildNumber };
+export { validateBuildNumber, resolveRawUrl };
