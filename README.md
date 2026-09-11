@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/3304711297/steamdb-chinese-plus/main/steamdb-chinese-plus.user.js"><img src="https://img.shields.io/badge/Install-Rolling%20Track-brightgreen?style=flat-square&logo=tampermonkey" alt="Install Rolling Track"></a>
-  <a href="https://github.com/3304711297/steamdb-chinese-plus/releases"><img src="https://img.shields.io/badge/Release%20Baseline-v1.4.4-blue?style=flat-square&logo=github" alt="Release Baseline v1.4.4"></a>
+  <a href="https://github.com/3304711297/steamdb-chinese-plus/releases"><img src="https://img.shields.io/github/v/release/3304711297/steamdb-chinese-plus?style=flat-square&label=Release%20Baseline&logo=github" alt="Release Baseline"></a>
   <a href="https://github.com/3304711297/steamdb-chinese-plus/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/3304711297/steamdb-chinese-plus/ci.yml?branch=main&label=CI%20Build&style=flat-square" alt="CI Status"></a>
   <a href="https://github.com/3304711297/steamdb-chinese-plus/actions/workflows/upstream-sync.yml"><img src="https://img.shields.io/github/actions/workflow/status/3304711297/steamdb-chinese-plus/upstream-sync.yml?branch=main&label=Sync%20Upstream%20(6h)&style=flat-square" alt="Sync Upstream"></a>
   <img src="https://img.shields.io/badge/Target-SteamDB.info-1b2838?style=flat-square&logo=steam" alt="SteamDB">
@@ -34,12 +34,12 @@
 | :--- | :--- | :--- | :--- |
 | 🚀 **滚动通道 (Rolling)**<br>*(推荐·GitHub 直连)* | [⚡ 一键安装 steamdb-chinese-plus.user.js](https://raw.githubusercontent.com/3304711297/steamdb-chinese-plus/main/steamdb-chinese-plus.user.js) | **默认推荐**。跟随 `main` 主分支，第一时间获得引擎优化、新特性与词库更新，无 CDN 缓存延迟 | **高频静默更新**<br>代码提交或每 6h 词库同步时即时生效 |
 | 🌐 **滚动通道 (Rolling)**<br>*(备选·CDN 镜像)* | [🔗 一键安装 (jsDelivr 镜像)](https://cdn.jsdelivr.net/gh/3304711297/steamdb-chinese-plus@main/steamdb-chinese-plus.user.js) | 适合国内网络无法顺畅直连 GitHub Raw 的网络环境（CDN 节点存在约 12 小时缓存） | **高频**<br>跟随 `main` 分支（存在 CDN 缓存窗口） |
-| 🛡️ **稳定通道 (Stable)**<br>*(最新稳定版直链)* | [📦 一键安装 Releases 最新资产](https://github.com/3304711297/steamdb-chinese-plus/releases/latest/download/steamdb-chinese-plus.user.js) | **极致稳定**。基线对齐 `v1.4.4`，仅在发布正式 GitHub Release 时更新，免受高频自动同步扰动 | **低频**<br>仅在正式发布里程碑 Release 标签时更新 |
+| 🛡️ **稳定通道 (Stable)**<br>*(最新稳定版直链)* | [📦 一键安装 Releases 最新资产](https://github.com/3304711297/steamdb-chinese-plus/releases/latest/download/steamdb-chinese-plus.user.js) | **极致稳定**。跟随 Releases 最新稳定标签（首个稳定基线 `v1.4.4`，之后随 Releases 推进），仅在发布正式 GitHub Release 时更新，免受高频自动同步扰动 | **低频**<br>仅在正式发布里程碑 Release 标签时更新 |
 | 📜 **稳定通道 (Stable)**<br>*(历史版本归档)* | [🗄️ 浏览 GitHub Releases 归档列表](https://github.com/3304711297/steamdb-chinese-plus/releases) | 查看完整发版说明、历史变更记录，或下载历史指定版本以供锁定回滚 | 按需手动下载与回滚 |
 
 > 💡 **更新与切换说明**：
 > - **滚动通道**脚本内置 `@updateURL` 与 `@downloadURL` 指向 `main` 分支，脚本管理器将跟随主分支日常演进平滑静默升级。
-> - **稳定通道**脚本资产锚定在 GitHub Releases，稳定版本基线从 **v1.4.4** 起步。
+> - **稳定通道**脚本资产锚定在 GitHub Releases，首个稳定基线为 **v1.4.4**，之后随 Releases 持续推进。
 > - 滚动通道与稳定通道产物命名一致，如需切换通道，直接点击目标通道链接重新安装覆盖即可。
 
 ---
@@ -80,6 +80,29 @@
 
 ---
 
+## 📂 项目结构
+
+仓库核心布局与文件职责一览：
+
+```text
+steamdb-chinese-plus/
+├── build.mjs                        # 构建器（OUR_BASE 版本常量所在）
+├── engine.js                        # 翻译引擎入口
+├── i18n-core.mjs                    # 翻译核心
+├── steamdb-chinese-plus.user.js     # 构建产物（勿手改，CI 会校验产物与源一致）
+├── upstream.config.json             # 上游同步配置
+├── upstream.state.json              # 上游同步状态（buildNumber 在此）
+├── sources/
+│   ├── steamdb-dict.json            # 上游基础词库（GitHub Actions 每 6h 自动同步）
+│   └── steamdb-supplement.json      # 自有补充词库（优先级更高，永不被上游冲掉）
+├── scripts/
+│   └── check-upstream.mjs           # 上游检测（退出码 10 = 有新内容）
+├── tests/                           # 5 个单测：engine-dom / i18n-core / word-priority / check-upstream / build
+└── docs/                            # 开发文档与记录
+```
+
+---
+
 ## 🛠️ 本地开发与测试
 
 ```bash
@@ -98,7 +121,7 @@ node --check steamdb-chinese-plus.user.js
 
 | 维度 | 🚀 滚动通道 (Rolling Track) | 🛡️ 稳定通道 (Stable Track) |
 | :--- | :--- | :--- |
-| **代码基线** | `main` 分支最新代码 | GitHub Releases 标签版本（**首个基线对齐 `v1.4.4`**） |
+| **代码基线** | `main` 分支最新代码 | GitHub Releases 标签版本（**首个稳定基线 `v1.4.4`，之后随 Releases 推进**） |
 | **分发地址** | `main/steamdb-chinese-plus.user.js` | [Releases 最新资产永久直链](https://github.com/3304711297/steamdb-chinese-plus/releases/latest/download/steamdb-chinese-plus.user.js) |
 | **更新触发** | 主干 Commit 合并、每 6h 定时词库同步 | 维护者正式切出 GitHub Release 时发布 |
 | **适用人群** | 追求最新特性与最新词库、愿意协助反馈体验的用户 | 追求生产级绝对稳定、不希望受频繁更新打扰的用户 |
@@ -117,6 +140,52 @@ node --check steamdb-chinese-plus.user.js
 - **滚动通道**：通过脚本内置 `@updateURL` 与 `@downloadURL` 默认绑定 `main` 分支 raw 链接。脚本管理器（ScriptCat / Tampermonkey 等）依据预设策略后台静默拉取更新；
 - **稳定通道**：通过 Release 资产安装。用户享受经过充分验证的里程碑产物；
 - **安全回滚机制**：如遇特殊环境兼容性异常，用户可随时在 [Releases 归档列表](https://github.com/3304711297/steamdb-chinese-plus/releases) 下载任一历史版本覆盖安装，实现版本锁定。
+
+---
+
+## ❓ 常见问题 (FAQ)
+
+<details>
+<summary><b>Q1：安装后页面没有翻译效果？</b></summary>
+
+- 先确认用户脚本管理器已启用、本脚本处于运行状态，并刷新页面；
+- 确认脚本已获得 `steamdb.info` 的站点访问权限；
+- ScriptCat 用户在 Edge 浏览器下，需在扩展设置中开启「允许访问文件 URL」；若控制台出现 `ERR_BLOCKED_BY_CLIENT`，通常是浏览器跟踪防护或扩展拦截了请求，将 SteamDB 加入例外 / 信任列表后重试；
+- 仍未生效时，请携带浏览器版本与控制台报错截图到仓库提交 Issue。
+
+</details>
+
+<details>
+<summary><b>Q2：词库多久更新一次？</b></summary>
+
+GitHub Actions 每 6 小时自动检测上游词库，检测到更新即自动构建发版：
+
+- **滚动通道**：跟随 `main` 分支，提交与词库同步后即时生效；
+- **jsDelivr 镜像**：存在约 12 小时的 CDN 缓存窗口，介意延迟可改用 GitHub 直连通道；
+- **稳定通道**：仅在发布正式 Release 时更新。
+
+</details>
+
+<details>
+<summary><b>Q3：表格排序 / 翻页后内容没有翻译？</b></summary>
+
+引擎基于 **MutationObserver + requestIdleCallback**，对 DOM 动态变化做毫秒级实时汉化，排序、翻页、弹窗等动态内容理论上不会漏翻。若确实遇到漏翻，欢迎提交 Issue 并附上页面 URL 与截图。
+
+</details>
+
+<details>
+<summary><b>Q4：会翻译游戏名或价格数据吗？</b></summary>
+
+不会。翻译引擎采用 CSS 选择器作用域精准匹配，只汉化界面词汇（表头、导航、筛选器等），游戏原名、价格与数据绝对安全。
+
+</details>
+
+<details>
+<summary><b>Q5：发现漏翻的词条怎么办？</b></summary>
+
+脚本菜单内置「输出未命中词条」功能，开启后正常浏览页面即可收集漏翻词条；将导出内容整理后到仓库提交 Issue，即可被收录进 `sources/steamdb-supplement.json`。
+
+</details>
 
 ---
 
