@@ -115,6 +115,90 @@ function sha256(text) {
 }
 
 /**
+ * 稳定序列化(纯函数):对象键排序后序列化,使比较结果与键序无关;
+ * 丢弃 undefined 值(与 JSON 语义一致)以及 ignoreKeys 指定的易变字段。
+ * 用于比较"状态是否发生实质变化"——直接 JSON.stringify 会因键序或时间戳而永不相等。
+ * @param {unknown} value
+ * @param {Set<string>} [ignoreKeys]
+ * @returns {string}
+ */
+function stableJson(value, ignoreKeys = new Set()) {
+    if (Array.isArray(value)) {
+        return '[' + value.map((v) => stableJson(v, ignoreKeys)).join(',') + ']';
+    }
+    if (value && typeof value === 'object') {
+        const parts = [];
+        for (const key of Object.keys(value).sort()) {
+            if (ignoreKeys.has(key) || value[key] === undefined) continue;
+            parts.push(`${JSON.stringify(key)}:${stableJson(value[key], ignoreKeys)}`);
+        }
+        return '{' + parts.join(',') + '}';
+    }
+    return JSON.stringify(value) ?? 'null';
+}
+
+/**
+ * 不作为"实质变化"判据的易变字段(纯数据,供 needsStateWrite 使用):
+ *   - checkedAt:每次检查都必然变化的时间戳。若把它算进判据,上游长期宕机时
+ *     每 6h 都会写出一个只差时间戳的 state,工作流的 git diff --quiet 必判为有变
+ *     → 纯噪音提交。它记录的是"最近一次实质状态变化"的检查时刻。
+ *   - repoUsed:本次由哪个候选源(主仓库/某 CDN)提供服务。raw 与 CDN 之间偶发漂移
+ *     属容灾正常现象,不应每次都产生提交。
+ * 其余任何字段(状态、哈希、版本、错误信息、buildNumber)变化都算实质变化,必须落盘。
+ */
+const VOLATILE_STATE_KEYS = new Set(['checkedAt', 'repoUsed']);
+
+/**
+ * 判断状态条目是否需要落盘(纯函数,供单元测试)。
+ * 忽略 VOLATILE_STATE_KEYS 中的易变字段后比较,内容一致即返回 false——
+ * 这是"避免每次调度都产生提交"守卫的真正判据。
+ * @returns {boolean}
+ */
+function needsStateWrite(next, prev) {
+    return stableJson(next, VOLATILE_STATE_KEYS) !== stableJson(prev, VOLATILE_STATE_KEYS);
+}
+
+/**
+ * 构造"上游全部候选源不可用"的状态条目(纯函数,供单元测试)。
+ * 保留上次已知的 hashes/versions(运维据此判断最后跟进到哪个版本),
+ * 只更新状态与错误信息。
+ */
+function unavailableEntry(prev, now, error) {
+    return {
+        ...prev,
+        status: 'unavailable',
+        checkedAt: now,
+        lastError: error ? String(error.message || error) : 'unknown',
+    };
+}
+
+/**
+ * 构造"上游可用但内容未变"的状态条目(纯函数,供单元测试)。
+ * 日常无更新时该条目与 prev 的实质内容相同(仅 checkedAt/repoUsed 可能变),
+ * needsStateWrite 会返回 false 从而不落盘;仅在状态跃迁(如上游从 unavailable
+ * 恢复)时记录一次,供运维观察。
+ */
+function unchangedEntry(prev, now, repoUsed) {
+    return {
+        ...prev,
+        status: 'unchanged',
+        repoUsed,
+        checkedAt: now,
+        lastError: null,
+    };
+}
+
+/**
+ * "上游可用但内容未变"的结果是否需要落盘(纯函数,供单元测试)。
+ * 只在两种运维关心的跃迁时记录:首次见到上游(尚无记录)、上游从不可用恢复。
+ * 已可达状态下 updated → unchanged 只是记账,落盘会在每次真实更新之后
+ * 再产生一个多余的噪音提交,因此不记录。
+ */
+function shouldRecordUnchanged(prev) {
+    return !prev.status || prev.status === 'unavailable';
+}
+
+/**
  * 读取本地快照文件的实际 sha256(纯函数,供单元测试)。
  * 哈希对象为 UTF-8 解码后的文本内容,与上游拉取侧 `sha256(text)` 同口径,
  * 因此"上游原文写入本地"后两侧哈希可直接比对。
@@ -293,14 +377,10 @@ async function main() {
 
         if (!result.ok) {
             // 上游全部候选仓库不可用:保留本地快照原样,仅记录状态
-            const entry = {
-                ...prev,
-                status: 'unavailable',
-                checkedAt: now,
-                lastError: result.error ? String(result.error.message || result.error) : 'unknown',
-            };
-            // 与上次状态完全一致则不落盘(上游长期消失时避免每次调度都产生提交)
-            if (JSON.stringify(entry) !== JSON.stringify(prev)) {
+            const entry = unavailableEntry(prev, now, result.error);
+            // 只有实质内容变化才落盘(checkedAt 每次必变,不算实质变化)——
+            // 上游长期消失时不会每 6h 产生一个纯噪音提交
+            if (needsStateWrite(entry, prev)) {
                 state.sources[source.name] = entry;
                 stateDirty = true;
             }
@@ -323,8 +403,15 @@ async function main() {
             prev.hashes && Object.entries(hashes).every(([k, v]) => prev.hashes[k] === v);
 
         if (unchanged) {
-            // 无更新:不落盘(时间戳等易变字段不写入),工作流不会因此产生空提交
-            console.log(`[upstream] "${source.name}" 无更新 (词库 v${versions.dict})`);
+            // 无更新:不落盘(时间戳等易变字段不写入),工作流不会因此产生空提交;
+            // 仅在首次见到上游或上游从不可用恢复时记录一次,供运维观察
+            if (shouldRecordUnchanged(prev)) {
+                state.sources[source.name] = unchangedEntry(prev, now, result.repoUsed);
+                stateDirty = true;
+                console.log(`[upstream] "${source.name}" 状态更新: ${prev.status || '(首次)'} → unchanged (词库 v${versions.dict})`);
+            } else {
+                console.log(`[upstream] "${source.name}" 无更新 (词库 v${versions.dict})`);
+            }
         } else {
             // 写入新快照并递增构建号,驱动产物版本号上涨以触发用户端自动更新
             for (const [local, text] of Object.entries(result.files)) {
@@ -386,6 +473,11 @@ export {
     parseStateText,
     UnexpectedError,
     candidateSources,
+    stableJson,
+    needsStateWrite,
+    shouldRecordUnchanged,
+    unavailableEntry,
+    unchangedEntry,
     snapshotDigests,
     detectSnapshotDrift,
 };

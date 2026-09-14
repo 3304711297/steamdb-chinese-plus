@@ -23,6 +23,10 @@ import {
     candidateSources,
     detectSnapshotDrift,
     snapshotDigests,
+    needsStateWrite,
+    shouldRecordUnchanged,
+    unavailableEntry,
+    unchangedEntry,
 } from '../scripts/check-upstream.mjs';
 
 /** 在系统临时目录建一个只属于本测试的根目录,结束后自动清理 */
@@ -34,6 +38,7 @@ function withTempRoot(fn) {
         rmSync(root, { recursive: true, force: true });
     }
 }
+
 describe('extractDictVersion(词库版本提取)', () => {
     test('从 SteamDB_CN.json 提取 DOC."更新时间" 字段', () => {
         assert.strictEqual(
@@ -245,6 +250,36 @@ describe('snapshotDigests(读取本地快照文件的实际 sha256)', () => {
     });
 });
 
+describe('needsStateWrite(落盘判据——消除上游不可用时的噪音提交)', () => {
+    test('仅 checkedAt 不同 → 不落盘(每次调度必变的时间戳不算实质变化)', () => {
+        const prev = { status: 'unavailable', checkedAt: '2026-01-01T00:00:00.000Z', lastError: 'HTTP 404' };
+        const next = { status: 'unavailable', checkedAt: '2026-01-02T06:00:00.000Z', lastError: 'HTTP 404' };
+        assert.strictEqual(needsStateWrite(next, prev), false);
+    });
+
+    test('状态跃迁(不可用 → 恢复) → 落盘', () => {
+        const prev = { status: 'unavailable', checkedAt: '2026-01-01T00:00:00.000Z', lastError: 'HTTP 404' };
+        const next = { ...prev, status: 'unchanged', checkedAt: '2026-01-02T06:00:00.000Z', lastError: null };
+        assert.strictEqual(needsStateWrite(next, prev), true);
+    });
+
+    test('错误信息变化 → 落盘(上游从 404 变成超时要能看出区别)', () => {
+        const prev = { status: 'unavailable', checkedAt: '2026-01-01T00:00:00.000Z', lastError: 'HTTP 404' };
+        const next = { ...prev, checkedAt: '2026-01-02T06:00:00.000Z', lastError: 'timeout' };
+        assert.strictEqual(needsStateWrite(next, prev), true);
+    });
+
+    test('哈希/版本等任意实质字段变化 → 落盘', () => {
+        const prev = { status: 'unchanged', hashes: { a: '1' }, checkedAt: 'x' };
+        assert.strictEqual(needsStateWrite({ ...prev, hashes: { a: '2' }, checkedAt: 'x' }, prev), true);
+        assert.strictEqual(needsStateWrite({ ...prev, buildNumberWouldChange: true, checkedAt: 'x' }, prev), true);
+    });
+
+    test('上次无记录(prev 缺省为空对象)→ 落盘', () => {
+        assert.strictEqual(needsStateWrite({ status: 'unchanged', checkedAt: 'x' }, {}), true);
+    });
+});
+
 describe('端到端:快照漂移必须以退出码 20 中断(先于任何网络请求)', () => {
     const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -292,5 +327,52 @@ describe('端到端:快照漂移必须以退出码 20 中断(先于任何网络�
             const r = runScript(root);
             assert.notStrictEqual(r.status, 20, `漂移校验不应在此中断; stderr=${r.stderr}`);
         });
+    });
+});
+
+describe('不可达/恢复状态条目:连续运行不再产生内容变化(模拟上游长期宕机)', () => {
+    test('第 1 次不可达落盘,其后任意次运行均不再落盘', () => {
+        const t = (n) => `2026-01-0${n}T0${n}:00:00.000Z`;
+        const e1 = unavailableEntry({}, t(1), new Error('HTTP 404 for https://x'));
+        assert.strictEqual(needsStateWrite(e1, {}), true, '首次进入 unavailable 需记录一次');
+        const e2 = unavailableEntry(e1, t(2), new Error('HTTP 404 for https://x'));
+        assert.strictEqual(needsStateWrite(e2, e1), false, '第 2 次不得再落盘');
+        const e3 = unavailableEntry(e2, t(3), new Error('HTTP 404 for https://x'));
+        assert.strictEqual(needsStateWrite(e3, e2), false, '第 3 次不得再落盘');
+        assert.strictEqual(e3.status, 'unavailable');
+    });
+
+    test('保留记录:不可用条目仍带 lastError,运维可从日志/状态区分"没跑"与"跑了但上游挂了"', () => {
+        const e = unavailableEntry({ versions: { dict: '2026-1-21' } }, 'now', new Error('HTTP 404 for https://x'));
+        assert.strictEqual(e.status, 'unavailable');
+        assert.match(e.lastError, /HTTP 404/);
+        assert.strictEqual(e.versions.dict, '2026-1-21', '上一次已知版本必须保留');
+    });
+
+    test('上游恢复且内容未变 → 状态跃迁落盘一次,lastError 清空', () => {
+        const prev = unavailableEntry({ hashes: { a: '1' }, versions: { dict: 'v1' } }, 't1', new Error('404'));
+        const next = unchangedEntry(prev, 't2', 'Chr233/GM_Scripts');
+        assert.strictEqual(next.status, 'unchanged');
+        assert.strictEqual(next.lastError, null);
+        assert.strictEqual(next.repoUsed, 'Chr233/GM_Scripts');
+        assert.strictEqual(next.versions.dict, 'v1');
+        assert.strictEqual(needsStateWrite(next, prev), true);
+        assert.strictEqual(needsStateWrite(unchangedEntry(next, 't3', 'Chr233/GM_Scripts'), next), false,
+            '已恢复后再跑不得产生变化');
+    });
+});
+
+describe('shouldRecordUnchanged(无更新时的落盘条件——只记运维关心的跃迁)', () => {
+    test('首次见到上游(无 status)→ 记录一次', () => {
+        assert.strictEqual(shouldRecordUnchanged({}), true);
+    });
+
+    test('上游从不可用恢复 → 记录一次', () => {
+        assert.strictEqual(shouldRecordUnchanged({ status: 'unavailable' }), true);
+    });
+
+    test('已是可达状态(unchanged/updated)→ 不记录,避免每次真实更新后再多一个噪音提交', () => {
+        assert.strictEqual(shouldRecordUnchanged({ status: 'unchanged' }), false);
+        assert.strictEqual(shouldRecordUnchanged({ status: 'updated' }), false);
     });
 });
