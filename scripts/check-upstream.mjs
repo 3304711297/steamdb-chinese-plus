@@ -6,14 +6,18 @@
  *   2. 与 upstream.state.json 中记录的哈希比对,判断是否有更新
  *   3. 有更新 → 覆盖 sources/ 下的本地快照,递增 buildNumber,记录新版本号
  *   4. 上游不可用(删除/断网/改名)→ 记录状态并正常退出,绝不改动本地快照
+ *   5. 校验本地快照内容与 state 的 snapshotHashes 记录一致:
+ *      快照上的任何人工改动必须显式锚定,否则会在下次上游更新时被静默覆盖
  *
  * 设计原则(与 openrouter-chinese-plus 同构):本仓库的 sources/ 是完整的 vendored
  * 快照,上游消失只影响"能否跟进新词库",不影响本项目继续构建、发布和维护。
  * 工作流因此永远不会因上游挂掉而变红。
  *
  * 退出码:0 = 无需处理(无更新或上游不可用);10 = 快照已更新,需要重新构建;
- *       20 = 本仓库自身状态异常(如 upstream.state.json 缺失/损坏)——绝不能静默,
- *       否则重算会从默认 buildNumber 起步、产物版本号倒退,脚本管理器将不再提示更新。
+ *       20 = 本仓库自身状态异常(如 upstream.state.json 缺失/损坏、
+ *       本地快照与 snapshotHashes 记录不一致)——绝不能静默,
+ *       否则重算会从默认 buildNumber 起步、产物版本号倒退,脚本管理器将不再提示更新;
+ *       或人工清理过的快照被上游原文整文件覆盖后无人察觉。
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -66,6 +70,19 @@ function parseStateText(raw) {
     if (typeof state.sources !== 'object' || state.sources === null || Array.isArray(state.sources)) {
         return { ok: false, reason: 'sources 缺失或类型非法' };
     }
+    // snapshotHashes 是"本地快照是否被改动"的唯一判据,格式非法时必须显式失败:
+    // 若当作"未记录"放过,漂移校验会被静默跳过,人工改过的快照仍会被上游整文件覆盖
+    if (state.snapshotHashes !== undefined) {
+        const sh = state.snapshotHashes;
+        if (typeof sh !== 'object' || sh === null || Array.isArray(sh)) {
+            return { ok: false, reason: 'snapshotHashes 类型非法,应是 {相对路径: sha256} 对象' };
+        }
+        for (const [local, digest] of Object.entries(sh)) {
+            if (typeof digest !== 'string' || !/^[0-9a-f]{64}$/.test(digest)) {
+                return { ok: false, reason: `snapshotHashes["${local}"] 非法(${JSON.stringify(digest)}),应是 64 位十六进制 sha256` };
+            }
+        }
+    }
     return { ok: true, state };
 }
 
@@ -95,6 +112,59 @@ function saveState(state) {
 
 function sha256(text) {
     return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+/**
+ * 读取本地快照文件的实际 sha256(纯函数,供单元测试)。
+ * 哈希对象为 UTF-8 解码后的文本内容,与上游拉取侧 `sha256(text)` 同口径,
+ * 因此"上游原文写入本地"后两侧哈希可直接比对。
+ * 文件缺失/不可读记为 null,由调用方判定为漂移——绝不因"读不到"就静默放过。
+ * @param {string} root 仓库根目录
+ * @param {string[]} locals 相对路径列表(与 config 的 files[].local 同形)
+ * @returns {Object<string, string|null>}
+ */
+function snapshotDigests(root, locals) {
+    const digests = {};
+    for (const local of locals) {
+        try {
+            digests[local] = sha256(readFileSync(join(root, local), 'utf8'));
+        } catch {
+            digests[local] = null;
+        }
+    }
+    return digests;
+}
+
+/**
+ * 比对本地快照实际哈希与 state.snapshotHashes 记录(纯函数,供单元测试)。
+ * 背景:本仓库的 sources/ 是 vendored 快照,上游有更新时会被整文件覆盖。
+ * 若有人直接清理/改写了快照却没更新记录,改动会在下次上游更新时静默丢失。
+ * 首次运行或新增快照文件(snapshotHashes 未记录该文件)时按"待锚定"处理,不算漂移——
+ * 由调用方在落盘时补记,保证启用本校验的当次运行不会误报。
+ * @param {object} state
+ * @param {Object<string, string|null>} actualDigests
+ * @returns {{drifted: boolean, mismatches: Array<{local: string, recorded: string, actual: string|null}>, unrecorded: boolean}}
+ */
+function detectSnapshotDrift(state, actualDigests) {
+    const recorded = state && typeof state.snapshotHashes === 'object' && state.snapshotHashes !== null
+        ? state.snapshotHashes
+        : null;
+    const unrecorded = !recorded || Object.keys(recorded).length === 0;
+    const mismatches = [];
+    for (const [local, actual] of Object.entries(actualDigests || {})) {
+        if (unrecorded || typeof recorded[local] !== 'string') continue;
+        if (recorded[local] !== actual) {
+            mismatches.push({ local, recorded: recorded[local], actual });
+        }
+    }
+    return { drifted: mismatches.length > 0, mismatches, unrecorded };
+}
+
+/** 从快照摘要集合中挑出可锚定的条目(读不到的文件不写入 null 覆盖记录) */
+function anchorable(digests) {
+    return Object.fromEntries(
+        Object.entries(digests || {}).filter(([, v]) => typeof v === 'string')
+    );
 }
 
 const UA = 'steamdb-chinese-plus-updater';
@@ -196,6 +266,26 @@ async function main() {
     let anyChanged = false;   // 上游内容有实质更新(需要重新构建)
     let stateDirty = false;   // 状态文件需要落盘(内容有实质变化才写,避免时间戳churn)
 
+    // 上游会整文件覆盖这些快照;它们一旦被本地人工改动而未更新记录,
+    // 改动就会在下一次上游更新时静默丢失——必须先于任何网络动作检出并中断
+    const snapshotLocals = [...new Set(
+        config.sources.flatMap((s) => s.files.map((f) => f.local))
+    )];
+
+    const before = snapshotDigests(projectRoot, snapshotLocals);
+    const drift = detectSnapshotDrift(state, before);
+    if (drift.drifted) {
+        const detail = drift.mismatches
+            .map((m) => `  - ${m.local}\n      记录: ${m.recorded}\n      实际: ${m.actual ?? '(文件缺失或不可读)'}`)
+            .join('\n');
+        throw new UnexpectedError(
+            '本地快照与 upstream.state.json 的 snapshotHashes 记录不一致:\n' + detail +
+            '\n这意味着快照被直接改动过(如人工清理词条)。上游一旦更新,该改动会被整文件覆盖而静默丢失。' +
+            '请确认改动是刻意保留的,并把 snapshotHashes 更新为实际值(或改走 sources/steamdb-supplement.json);' +
+            '本次拒绝继续,以免覆盖前先被误判为"无更新"。'
+        );
+    }
+
     for (const source of config.sources) {
         const prev = state.sources[source.name] || {};
         const result = await fetchSource(source);
@@ -257,6 +347,16 @@ async function main() {
         }
     }
 
+    // 锚定本地快照的实际哈希:首次启用本校验时补记(不误报为漂移),
+    // 上游更新写入新内容后同步刷新,保证记录始终等于磁盘上的真实快照
+    const after = anchorable(snapshotDigests(projectRoot, snapshotLocals));
+    const recorded = state.snapshotHashes || {};
+    if (Object.entries(after).some(([local, digest]) => recorded[local] !== digest)) {
+        state.snapshotHashes = { ...recorded, ...after };
+        stateDirty = true;
+        console.log('[upstream] 已锚定本地快照哈希:', JSON.stringify(state.snapshotHashes));
+    }
+
     if (stateDirty) saveState(state);
     process.exitCode = anyChanged ? EXIT_UPDATED : EXIT_OK;
 }
@@ -280,4 +380,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     });
 }
 
-export { extractDictVersion, sha256, parseStateText, UnexpectedError, candidateSources };
+export {
+    extractDictVersion,
+    sha256,
+    parseStateText,
+    UnexpectedError,
+    candidateSources,
+    snapshotDigests,
+    detectSnapshotDrift,
+};

@@ -91,15 +91,38 @@ steamdb-chinese-plus/
 ├── i18n-core.mjs                    # 翻译核心
 ├── steamdb-chinese-plus.user.js     # 构建产物（勿手改，CI 会校验产物与源一致）
 ├── upstream.config.json             # 上游同步配置
-├── upstream.state.json              # 上游同步状态（buildNumber 在此）
+├── upstream.state.json              # 上游同步状态（buildNumber + snapshotHashes 快照锚点）
 ├── sources/
 │   ├── steamdb-dict.json            # 上游基础词库（GitHub Actions 每 6h 自动同步）
 │   └── steamdb-supplement.json      # 自有补充词库（优先级更高，永不被上游冲掉）
 ├── scripts/
-│   └── check-upstream.mjs           # 上游检测（退出码 10 = 有新内容）
+│   └── check-upstream.mjs           # 上游检测（退出码 0/10/20，语义见下节）
 ├── tests/                           # 5 个单测：engine-dom / i18n-core / word-priority / check-upstream / build
 └── docs/                            # 开发文档与记录
 ```
+
+### 🔐 同步状态文件与退出码
+
+`upstream.state.json` 里有两组哈希，**语义不同，不要互相替代**：
+
+| 字段 | 记录内容 | 用途 |
+| :--- | :--- | :--- |
+| `sources.<源名>.hashes` | **上游原文**的 sha256 | 判断"上游是否发布了新内容"（与本地无关） |
+| `snapshotHashes` | **本地 `sources/` 快照文件**当前内容的 sha256 | 判断"本地快照是否被人工改动过" |
+
+本仓库对上游词库做过死词条清理，因此这两组值**天然不相等**（上游原文哈希 ≠ 清理后的本地哈希），这是预期状态而非异常：
+
+- 上游一有更新，快照会被**整文件覆盖**。任何人工改动（如清理死词条）都必须把 `snapshotHashes` 同步回写为实际值；
+- 否则 `check-upstream.mjs` 会以**退出码 20 中断并指名不一致的文件**，避免改动在下次同步时被静默丢弃；
+- 想长期保留的自有词条请放进 `sources/steamdb-supplement.json`（合并优先级更高，永不被上游覆盖）。
+
+`check-upstream.mjs` 退出码：
+
+| 退出码 | 含义 | 工作流行为 |
+| :--- | :--- | :--- |
+| `0` | 无更新，或上游全部候选源不可用（快照原样保留） | 保持绿色 |
+| `10` | 快照已更新，需重新构建 | 触发重建 + 单测门禁后提交 |
+| `20` | **仓库自身状态异常**：状态文件缺失/损坏，或本地快照与 `snapshotHashes` 不一致 | 变红报警，需人工介入 |
 
 ---
 

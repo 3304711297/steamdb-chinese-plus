@@ -1,5 +1,8 @@
 {
   "buildNumber": 4,
+  "snapshotHashes": {
+    "sources/steamdb-dict.json": "6f7f767f78fdaca886c1aaa1771b214e30f703c39232a90ce139aa156701de9d"
+  },
   "sources": {
     "Chr_": {
       "status": "unchanged",
