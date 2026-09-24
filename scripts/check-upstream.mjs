@@ -15,9 +15,10 @@
  *
  * 退出码:0 = 无需处理(无更新或上游不可用);10 = 快照已更新,需要重新构建;
  *       20 = 本仓库自身状态异常(如 upstream.state.json 缺失/损坏、
- *       本地快照与 snapshotHashes 记录不一致)——绝不能静默,
+ *       本地快照与 snapshotHashes 记录不一致、upstream.config.json 非法)——绝不能静默,
  *       否则重算会从默认 buildNumber 起步、产物版本号倒退,脚本管理器将不再提示更新;
- *       或人工清理过的快照被上游原文整文件覆盖后无人察觉。
+ *       或人工清理过的快照被上游原文整文件覆盖后无人察觉;
+ *       或配置写错被当成网络问题吞掉、同步静默停摆而工作流保持绿色。
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -45,6 +46,74 @@ class UnexpectedError extends Error {
         this.name = 'UnexpectedError';
         this.unexpected = true;
     }
+}
+
+/**
+ * 校验上游来源配置(纯函数,供单元测试)。
+ * 配置写错(如 CDN 模板不是合法 URL、字段缺失)必须在发起任何网络请求前显式失败:
+ * 否则 candidateSources 里的 new URL 会抛 TypeError,被 main() 兜底 catch
+ * 当成"网络异常"吞掉——退出码 0、工作流全绿,同步从此静默停摆无人察觉。
+ * @returns {{ok: true} | {ok: false, reason: string}}
+ */
+function validateConfig(cfg) {
+    if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) {
+        return { ok: false, reason: '顶层必须是对象' };
+    }
+    if (!Array.isArray(cfg.sources) || cfg.sources.length === 0) {
+        return { ok: false, reason: 'sources 必须是非空数组' };
+    }
+    const isNonEmptyString = (v) => typeof v === 'string' && v.length > 0;
+    for (const [i, source] of cfg.sources.entries()) {
+        const where = `sources[${i}]`;
+        if (!source || typeof source !== 'object' || Array.isArray(source)) {
+            return { ok: false, reason: `${where} 必须是对象` };
+        }
+        for (const key of ['name', 'repo', 'branch']) {
+            if (!isNonEmptyString(source[key])) {
+                return { ok: false, reason: `${where}.${key} 必须是非空字符串` };
+            }
+        }
+        if (!Array.isArray(source.files) || source.files.length === 0) {
+            return { ok: false, reason: `${where}.files 必须是非空数组` };
+        }
+        for (const [j, f] of source.files.entries()) {
+            if (!f || typeof f !== 'object' ||
+                !isNonEmptyString(f.local) || !isNonEmptyString(f.remote)) {
+                return { ok: false, reason: `${where}.files[${j}] 的 local/remote 必须是非空字符串` };
+            }
+        }
+        if (source.mirrors !== undefined &&
+            (!Array.isArray(source.mirrors) || !source.mirrors.every(isNonEmptyString))) {
+            return { ok: false, reason: `${where}.mirrors 必须是字符串数组` };
+        }
+        if (source.cdn !== undefined) {
+            const templates = Array.isArray(source.cdn) ? source.cdn : [source.cdn];
+            for (const template of templates) {
+                if (!isNonEmptyString(template)) {
+                    return { ok: false, reason: `${where}.cdn 模板必须是非空字符串` };
+                }
+                // 占位符展开后必须仍是合法 URL:否则 candidateSources 的 new URL 抛错,
+                // 会被当成网络问题吞掉(退出码 0),同步静默停摆
+                const expanded = template
+                    .replace('{repo}', 'owner/repo')
+                    .replace('{branch}', 'main')
+                    .replace('{path}', 'a/b.json');
+                try {
+                    new URL(expanded);
+                } catch {
+                    return { ok: false, reason: `${where}.cdn 模板不是合法 URL: ${template}` };
+                }
+                // 必需的占位符:{branch}/{path} 缺失时多文件会被拉成同一 URL(静默损坏);
+                // {repo} 允许缺省(自有 CDN 常把仓库路径硬编码在模板里),缺省即视为已固定
+                for (const ph of ['{branch}', '{path}']) {
+                    if (!template.includes(ph)) {
+                        return { ok: false, reason: `${where}.cdn 模板缺少占位符 ${ph}: ${template}` };
+                    }
+                }
+            }
+        }
+    }
+    return { ok: true };
 }
 
 /**
@@ -345,6 +414,16 @@ async function fetchSource(source) {
 }
 
 async function main() {
+    // 配置非法是"仓库自身问题",必须先于快照校验与网络请求显式失败(退出码 20),
+    // 绝不能被当成上游网络问题静默放过(退出码 0)
+    const configCheck = validateConfig(config);
+    if (!configCheck.ok) {
+        throw new UnexpectedError(
+            `上游来源配置 upstream.config.json 非法(${configCheck.reason}),` +
+            '拒绝继续:配置错误若被当成网络异常吞掉,同步会静默停摆而工作流保持绿色。'
+        );
+    }
+
     const state = loadState();
     state.sources = state.sources || {};
     let anyChanged = false;   // 上游内容有实质更新(需要重新构建)
@@ -471,6 +550,7 @@ export {
     extractDictVersion,
     sha256,
     parseStateText,
+    validateConfig,
     UnexpectedError,
     candidateSources,
     stableJson,
