@@ -19,6 +19,7 @@ import {
     extractDictVersion,
     sha256,
     parseStateText,
+    validateConfig,
     UnexpectedError,
     candidateSources,
     detectSnapshotDrift,
@@ -277,6 +278,100 @@ describe('needsStateWrite(落盘判据——消除上游不可用时的噪音提
 
     test('上次无记录(prev 缺省为空对象)→ 落盘', () => {
         assert.strictEqual(needsStateWrite({ status: 'unchanged', checkedAt: 'x' }, {}), true);
+    });
+});
+
+describe('validateConfig(上游来源配置校验——配置错误绝不能被当成网络问题吞掉)', () => {
+    const good = () => ({
+        sources: [{
+            name: 'Chr_',
+            repo: 'Chr233/GM_Scripts',
+            branch: 'master',
+            mirrors: [],
+            cdn: [
+                'https://cdn.jsdelivr.net/gh/{repo}@{branch}/{path}',
+                'https://raw.chrxw.com/GM_Scripts/{branch}/{path}',
+            ],
+            files: [{ local: 'sources/steamdb-dict.json', remote: 'SteamDB/SteamDB_CN.json' }],
+        }],
+    });
+
+    test('合法配置 → ok', () => {
+        assert.deepStrictEqual(validateConfig(good()), { ok: true });
+    });
+
+    test('cdn 模板不是合法 URL → 拒绝(曾导致 TypeError 被当成网络异常、退出码 0 静默放过)', () => {
+        const cfg = good();
+        cfg.sources[0].cdn = ['not-a-valid-url'];
+        const r = validateConfig(cfg);
+        assert.strictEqual(r.ok, false);
+        assert.match(r.reason, /cdn 模板不是合法 URL/);
+    });
+
+    test('cdn 模板缺少占位符 → 拒绝(缺 {path} 会导致多文件被拉成同一 URL,静默损坏)', () => {
+        const cfg = good();
+        cfg.sources[0].cdn = ['https://example.com/{repo}/{branch}/fixed.json'];
+        const r = validateConfig(cfg);
+        assert.strictEqual(r.ok, false);
+        assert.match(r.reason, /缺少占位符/);
+    });
+
+    test('cdn 模板允许缺省 {repo}(自有 CDN 常把仓库路径硬编码在模板里)', () => {
+        const cfg = good();
+        cfg.sources[0].cdn = ['https://raw.chrxw.com/GM_Scripts/{branch}/{path}'];
+        assert.deepStrictEqual(validateConfig(cfg), { ok: true });
+    });
+
+    test('缺字段 → 拒绝', () => {
+        for (const key of ['name', 'repo', 'branch']) {
+            const cfg = good();
+            delete cfg.sources[0][key];
+            assert.strictEqual(validateConfig(cfg).ok, false, `${key} 缺失应拒绝`);
+        }
+        const cfg = good();
+        cfg.sources[0].files = [];
+        assert.strictEqual(validateConfig(cfg).ok, false, 'files 为空应拒绝');
+        const cfg2 = good();
+        delete cfg2.sources;
+        assert.strictEqual(validateConfig(cfg2).ok, false, 'sources 缺失应拒绝');
+    });
+
+    test('mirrors 非字符串数组 → 拒绝', () => {
+        const cfg = good();
+        cfg.sources[0].mirrors = [42];
+        assert.strictEqual(validateConfig(cfg).ok, false);
+    });
+});
+
+describe('端到端:非法上游配置必须以退出码 20 中断(先于任何网络请求)', () => {
+    const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+    test('cdn 模板非法 → 退出码 20,stderr 指明配置问题而非网络异常', () => {
+        const root = mkdtempSync(join(tmpdir(), 'steamdb-badcfg-e2e-'));
+        try {
+            cpSync(join(repoRoot, 'scripts'), join(root, 'scripts'), { recursive: true });
+            cpSync(join(repoRoot, 'sources'), join(root, 'sources'), { recursive: true });
+            writeFileSync(join(root, 'upstream.config.json'), JSON.stringify({
+                sources: [{
+                    name: 'Chr_', repo: 'Chr233/GM_Scripts', branch: 'master',
+                    cdn: ['not-a-valid-url'],
+                    files: [{ local: 'sources/steamdb-dict.json', remote: 'SteamDB/SteamDB_CN.json' }],
+                }],
+            }), 'utf8');
+            writeFileSync(join(root, 'upstream.state.json'), JSON.stringify({
+                buildNumber: 4,
+                sources: { Chr_: { status: 'unchanged' } },
+                snapshotHashes: {},
+            }, null, 2) + '\n', 'utf8');
+            const r = spawnSync(process.execPath, ['scripts/check-upstream.mjs'],
+                { cwd: root, encoding: 'utf8' });
+            assert.strictEqual(r.status, 20, `应退出 20,实际 ${r.status}; stderr=${r.stderr}`);
+            assert.match(r.stderr, /upstream\.config\.json 非法/);
+            // 绝不能走兜底 catch 的"网络异常"口径(那是把配置错误静默吞掉的旧行为)
+            assert.doesNotMatch(r.stderr, /检查过程发生网络异常/, '配置错误绝不能被归类为网络异常');
+        } finally {
+            rmSync(root, { recursive: true, force: true });
+        }
     });
 });
 
